@@ -20,6 +20,7 @@ function AppContent() {
     parameterPanelCollapsed,
     setParameterPanelCollapsed,
     bots,
+    currentBot,
     createBot,
     updateBot,
     deleteBot,
@@ -75,6 +76,8 @@ function AppContent() {
             onChange={setParameters}
             collapsed={parameterPanelCollapsed}
             onToggleCollapse={() => setParameterPanelCollapsed(!parameterPanelCollapsed)}
+            currentBot={currentBot}
+            onBotNameChange={(name) => currentBot && updateBot(currentBot.id, { name })}
           />
         }
       />

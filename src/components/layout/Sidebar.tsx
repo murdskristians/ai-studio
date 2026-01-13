@@ -19,6 +19,7 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
     sidebarCollapsed,
     setSidebarCollapsed,
     exportBot,
+    exportDefaultAssistant,
     exportAllBots,
   } = useApp();
 
@@ -68,13 +69,17 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
           <div className="ai-studio-section-header">
             <h3 className="ai-studio-section-title">Bots</h3>
             <div className="ai-studio-section-actions">
-              {bots.length > 0 && (
-                <button className="ai-studio-section-action" onClick={exportAllBots} title="Export all bots">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path d="M7 2V10M7 10L4 7M7 10L10 7M2 12H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              )}
+              <button
+                className="ai-studio-section-action"
+                onClick={exportAllBots}
+                title="Export all bots"
+                disabled={bots.length === 0}
+                style={{ visibility: bots.length > 0 ? 'visible' : 'hidden' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 2V10M7 10L4 7M7 10L10 7M2 12H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -89,6 +94,20 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
                 </svg>
               </span>
               <span className="ai-studio-item-text">Default Assistant</span>
+              <div className="ai-studio-item-actions">
+                <button
+                  className="ai-studio-item-action"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    exportDefaultAssistant();
+                  }}
+                  title="Export bot"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M6 2V8M6 8L3.5 5.5M6 8L8.5 5.5M2 10H10" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
             </button>
 
             {bots.map(bot => (

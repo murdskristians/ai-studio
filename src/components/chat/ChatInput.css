@@ -32,6 +32,14 @@
   max-height: 200px;
 }
 
+textarea.ai-studio-chat-input:focus,
+textarea.ai-studio-chat-input:focus-visible {
+  outline: none !important;
+  outline-width: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
 .ai-studio-chat-input::placeholder {
   color: var(--text-muted);
 }

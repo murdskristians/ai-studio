@@ -44,6 +44,41 @@
   background-color: var(--bg-tertiary);
 }
 
+.ai-studio-bot-name-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ai-studio-bot-name-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.ai-studio-bot-name-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.ai-studio-bot-name-input:hover {
+  border-color: var(--border-hover);
+}
+
+.ai-studio-bot-name-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  background-color: var(--bg-secondary);
+}
+
 .ai-studio-panel-content {
   flex: 1;
   overflow-y: auto;

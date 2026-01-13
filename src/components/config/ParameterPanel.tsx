@@ -1,5 +1,5 @@
 import { Slider, TagInput, Input, Button } from '../ui';
-import type { GenerationParameters } from '../../types';
+import type { GenerationParameters, Bot } from '../../types';
 import { DEFAULT_PARAMETERS, PARAMETER_LIMITS } from '../../types/parameters';
 import './ParameterPanel.css';
 
@@ -8,9 +8,11 @@ interface ParameterPanelProps {
   onChange: (params: GenerationParameters) => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  currentBot?: Bot | null;
+  onBotNameChange?: (name: string) => void;
 }
 
-export function ParameterPanel({ parameters, onChange, collapsed, onToggleCollapse }: ParameterPanelProps) {
+export function ParameterPanel({ parameters, onChange, collapsed, onToggleCollapse, currentBot, onBotNameChange }: ParameterPanelProps) {
   const updateParam = <K extends keyof GenerationParameters>(key: K, value: GenerationParameters[K]) => {
     onChange({ ...parameters, [key]: value });
   };
@@ -48,6 +50,18 @@ export function ParameterPanel({ parameters, onChange, collapsed, onToggleCollap
           Reset
         </Button>
       </div>
+
+      {currentBot && (
+        <div className="ai-studio-bot-name-section">
+          <label className="ai-studio-bot-name-label">Bot Name</label>
+          <input
+            type="text"
+            className="ai-studio-bot-name-input"
+            value={currentBot.name}
+            onChange={(e) => onBotNameChange?.(e.target.value)}
+          />
+        </div>
+      )}
 
       <div className="ai-studio-panel-content">
         <Slider
