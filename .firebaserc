@@ -1,0 +1,32 @@
+{
+  "projects": {
+    "default": "hotcode-erp",
+    "test": "hotcode-erp",
+    "prod": "erp-production-480611",
+    "qa": "testsauto-e5bef"
+  },
+  "targets": {
+    "hotcode-erp": {
+      "hosting": {
+        "ai-studio-module": [
+          "hotcode-ai-studio-module"
+        ]
+      }
+    },
+    "erp-production-480611": {
+      "hosting": {
+        "ai-studio-module": [
+          "placeholder-for-hosting-env-prod"
+        ]
+      }
+    },
+    "testsauto-e5bef": {
+      "hosting": {
+        "ai-studio-module": [
+          "placeholder-for-hosting-env-qa"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
