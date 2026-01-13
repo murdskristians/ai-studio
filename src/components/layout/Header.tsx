@@ -8,12 +8,7 @@ interface HeaderProps {
 }
 
 export function Header({ onOpenSettings }: HeaderProps) {
-  const { selectedModel, setSelectedModel, clearMessages, createConversation } = useApp();
-
-  const handleNewChat = () => {
-    clearMessages();
-    createConversation();
-  };
+  const { selectedModel, setSelectedModel } = useApp();
 
   return (
     <header className="header">
@@ -34,18 +29,11 @@ export function Header({ onOpenSettings }: HeaderProps) {
       </div>
 
       <div className="header-right">
-        <Button variant="ghost" size="sm" onClick={handleNewChat}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          New Chat
-        </Button>
         <Button variant="ghost" size="sm" onClick={onOpenSettings}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M8 1V3M8 13V15M1 8H3M13 8H15M2.93 2.93L4.34 4.34M11.66 11.66L13.07 13.07M2.93 13.07L4.34 11.66M11.66 4.34L13.07 2.93" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M13 5H11V3C11 1.9 10.1 1 9 1H7C5.9 1 5 1.9 5 3V5H3C1.9 5 1 5.9 1 7V9C1 10.1 1.9 11 3 11H5V13C5 14.1 5.9 15 7 15H9C10.1 15 11 14.1 11 13V11H13C14.1 11 15 10.1 15 9V7C15 5.9 14.1 5 13 5Z" stroke="currentColor" strokeWidth="1.5" fill="none" />
           </svg>
-          Settings
+          API Keys
         </Button>
       </div>
     </header>

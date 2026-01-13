@@ -133,9 +133,33 @@ export function AppProvider({ children }: AppProviderProps) {
   );
 
   const createBot = useCallback(
-    (botData: Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>): Bot => {
+    (botData?: Partial<Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>>): Bot => {
+      // Generate auto-incrementing name if not provided
+      let botName = botData?.name;
+      if (!botName) {
+        const baseName = 'Default Assistant';
+        const existingNames = new Set(bots.map((b) => b.name));
+
+        // Check if base name exists (without number)
+        if (!existingNames.has(baseName)) {
+          botName = baseName;
+        } else {
+          // Find next available number
+          let counter = 2;
+          while (existingNames.has(`${baseName} ${counter}`)) {
+            counter++;
+          }
+          botName = `${baseName} ${counter}`;
+        }
+      }
+
       const newBot: Bot = {
-        ...botData,
+        name: botName,
+        description: botData?.description ?? '',
+        systemPrompt: botData?.systemPrompt ?? '',
+        preferredModel: botData?.preferredModel,
+        preferredProvider: botData?.preferredProvider,
+        defaultParameters: botData?.defaultParameters ?? { ...DEFAULT_PARAMETERS },
         id: uuidv4(),
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -143,7 +167,7 @@ export function AppProvider({ children }: AppProviderProps) {
       setBots((prev) => [...prev, newBot]);
       return newBot;
     },
-    []
+    [bots]
   );
 
   const updateBot = useCallback((id: string, updates: Partial<Bot>) => {
