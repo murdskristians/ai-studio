@@ -43,22 +43,22 @@ function SettingsModalContent({ onClose }: { onClose: () => void }) {
         </>
       }
     >
-      <div className="settings-form">
-        <div className="settings-section">
-          <h4 className="settings-section-title">API Keys</h4>
-          <p className="settings-description">
+      <div className="ai-studio-settings-form">
+        <div className="ai-studio-settings-section">
+          <h4 className="ai-studio-settings-section-title">API Keys</h4>
+          <p className="ai-studio-settings-description">
             Enter your API keys to enable different AI providers. Keys are stored locally in your browser.
           </p>
 
-          <div className="api-key-field">
-            <div className="provider-header">
-              <span className="provider-icon gemini">G</span>
-              <span className="provider-name">Google Gemini</span>
+          <div className="ai-studio-api-key-field">
+            <div className="ai-studio-provider-header">
+              <span className="ai-studio-provider-icon gemini">G</span>
+              <span className="ai-studio-provider-name">Google Gemini</span>
               <a
                 href="https://aistudio.google.com/app/apikey"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="get-key-link"
+                className="ai-studio-get-key-link"
               >
                 Get API Key
               </a>
@@ -71,15 +71,15 @@ function SettingsModalContent({ onClose }: { onClose: () => void }) {
             />
           </div>
 
-          <div className="api-key-field">
-            <div className="provider-header">
-              <span className="provider-icon groq">Q</span>
-              <span className="provider-name">Groq</span>
+          <div className="ai-studio-api-key-field">
+            <div className="ai-studio-provider-header">
+              <span className="ai-studio-provider-icon groq">Q</span>
+              <span className="ai-studio-provider-name">Groq</span>
               <a
                 href="https://console.groq.com/keys"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="get-key-link"
+                className="ai-studio-get-key-link"
               >
                 Get API Key
               </a>
@@ -92,15 +92,15 @@ function SettingsModalContent({ onClose }: { onClose: () => void }) {
             />
           </div>
 
-          <div className="api-key-field">
-            <div className="provider-header">
-              <span className="provider-icon openrouter">O</span>
-              <span className="provider-name">OpenRouter</span>
+          <div className="ai-studio-api-key-field">
+            <div className="ai-studio-provider-header">
+              <span className="ai-studio-provider-icon openrouter">O</span>
+              <span className="ai-studio-provider-name">OpenRouter</span>
               <a
                 href="https://openrouter.ai/keys"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="get-key-link"
+                className="ai-studio-get-key-link"
               >
                 Get API Key
               </a>
@@ -114,7 +114,7 @@ function SettingsModalContent({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        <div className="settings-warning">
+        <div className="ai-studio-settings-warning">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M8 5V8M8 11H8.01M14 8C14 11.3137 11.3137 14 8 14C4.68629 14 2 11.3137 2 8C2 4.68629 4.68629 2 8 2C11.3137 2 14 4.68629 14 8Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>

@@ -134,49 +134,59 @@ export function AppProvider({ children }: AppProviderProps) {
 
   const createBot = useCallback(
     (botData?: Partial<Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>>): Bot => {
-      // Generate auto-incrementing name if not provided
-      let botName = botData?.name;
-      if (!botName) {
-        const baseName = 'Default Assistant';
-        const existingNames = new Set(bots.map((b) => b.name));
+      let newBot: Bot = null!;
 
-        // Check if base name exists (without number)
-        if (!existingNames.has(baseName)) {
-          botName = baseName;
-        } else {
-          // Find next available number
+      setBots((currentBots) => {
+        let botName = botData?.name;
+        if (!botName) {
+          const baseName = 'Default Assistant';
+          const existingNames = new Set(currentBots.map((b) => b.name));
+          existingNames.add(baseName);
+
           let counter = 2;
           while (existingNames.has(`${baseName} ${counter}`)) {
             counter++;
           }
           botName = `${baseName} ${counter}`;
         }
-      }
 
-      const newBot: Bot = {
-        name: botName,
-        description: botData?.description ?? '',
-        systemPrompt: botData?.systemPrompt ?? '',
-        preferredModel: botData?.preferredModel,
-        preferredProvider: botData?.preferredProvider,
-        defaultParameters: botData?.defaultParameters ?? { ...DEFAULT_PARAMETERS },
-        id: uuidv4(),
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-      setBots((prev) => [...prev, newBot]);
+        newBot = {
+          name: botName,
+          description: botData?.description ?? '',
+          systemPrompt: botData?.systemPrompt ?? '',
+          preferredModel: botData?.preferredModel,
+          preferredProvider: botData?.preferredProvider,
+          defaultParameters: botData?.defaultParameters ?? {
+            ...DEFAULT_PARAMETERS,
+          },
+          id: uuidv4(),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+
+        return [...currentBots, newBot];
+      });
+
       return newBot;
     },
-    [bots]
+    []
   );
 
-  const updateBot = useCallback((id: string, updates: Partial<Bot>) => {
-    setBots((prev) =>
-      prev.map((bot) =>
-        bot.id === id ? { ...bot, ...updates, updatedAt: Date.now() } : bot
-      )
-    );
-  }, []);
+  const updateBot = useCallback(
+    (id: string, updates: Partial<Bot>) => {
+      setBots((prev) =>
+        prev.map((bot) =>
+          bot.id === id ? { ...bot, ...updates, updatedAt: Date.now() } : bot
+        )
+      );
+      if (currentBotValue?.id === id) {
+        setCurrentBotValue((prev) =>
+          prev ? { ...prev, ...updates, updatedAt: Date.now() } : null
+        );
+      }
+    },
+    [currentBotValue?.id]
+  );
 
   const deleteBot = useCallback(
     (id: string) => {
@@ -213,6 +223,31 @@ export function AppProvider({ children }: AppProviderProps) {
     },
     [bots]
   );
+
+  const exportDefaultAssistant = useCallback(() => {
+    const defaultBot = {
+      name: 'Default Assistant',
+      description: '',
+      systemPrompt: '',
+      defaultParameters: { ...DEFAULT_PARAMETERS },
+    };
+
+    const exportData = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      bots: [defaultBot],
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'default-assistant-bot.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
 
   const exportAllBots = useCallback(() => {
     if (bots.length === 0) return;
@@ -454,6 +489,7 @@ export function AppProvider({ children }: AppProviderProps) {
       updateBot,
       deleteBot,
       exportBot,
+      exportDefaultAssistant,
       exportAllBots,
       importBots,
       conversations,
@@ -488,6 +524,7 @@ export function AppProvider({ children }: AppProviderProps) {
       updateBot,
       deleteBot,
       exportBot,
+      exportDefaultAssistant,
       exportAllBots,
       importBots,
       conversations,

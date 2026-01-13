@@ -5,6 +5,7 @@ import { ChatContainer } from './components/chat';
 import { ParameterPanel } from './components/config';
 import { BotEditorModal } from './components/bots';
 import type { Bot } from './types';
+import './index.css';
 
 function AppContent() {
   const {
@@ -19,6 +20,7 @@ function AppContent() {
     parameterPanelCollapsed,
     setParameterPanelCollapsed,
     bots,
+    currentBot,
     createBot,
     updateBot,
     deleteBot,
@@ -74,6 +76,8 @@ function AppContent() {
             onChange={setParameters}
             collapsed={parameterPanelCollapsed}
             onToggleCollapse={() => setParameterPanelCollapsed(!parameterPanelCollapsed)}
+            currentBot={currentBot}
+            onBotNameChange={(name) => currentBot && updateBot(currentBot.id, { name })}
           />
         }
       />
@@ -96,9 +100,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <div className="ai-studio-root">
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </div>
   );
 }
 

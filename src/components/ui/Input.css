@@ -1,16 +1,16 @@
-.input-wrapper {
+.ai-studio-input-wrapper {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.input-label {
+.ai-studio-input-label {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
 }
 
-.input {
+.ai-studio-input {
   padding: 10px 12px;
   background-color: var(--bg-tertiary);
   border: 1px solid var(--border-color);
@@ -20,24 +20,24 @@
   transition: border-color var(--transition-fast);
 }
 
-.input:hover {
+.ai-studio-input:hover {
   border-color: var(--border-hover);
 }
 
-.input:focus {
+.ai-studio-input:focus {
   border-color: var(--accent-blue);
   outline: none;
 }
 
-.input::placeholder {
+.ai-studio-input::placeholder {
   color: var(--text-muted);
 }
 
-.input-error {
+.ai-studio-input-error {
   border-color: var(--accent-red);
 }
 
-.input-error-text {
+.ai-studio-input-error-text {
   font-size: 12px;
   color: var(--accent-red);
 }

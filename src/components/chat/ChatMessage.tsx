@@ -20,8 +20,8 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
   const isUser = message.role === 'user';
 
   return (
-    <div className={`chat-message ${isUser ? 'user' : 'assistant'}`}>
-      <div className="message-avatar">
+    <div className={`ai-studio-chat-message ${isUser ? 'user' : 'assistant'}`}>
+      <div className="ai-studio-message-avatar">
         {isUser ? (
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <circle cx="10" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" />
@@ -34,26 +34,26 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
         )}
       </div>
 
-      <div className="message-content">
-        <div className="message-header">
-          <span className="message-role">{isUser ? 'You' : 'Assistant'}</span>
+      <div className="ai-studio-message-content">
+        <div className="ai-studio-message-header">
+          <span className="ai-studio-message-role">{isUser ? 'You' : 'Assistant'}</span>
           {message.model && !isUser && (
-            <span className="message-model">{message.model}</span>
+            <span className="ai-studio-message-model">{message.model}</span>
           )}
         </div>
 
-        <div className={`message-text ${isStreaming ? 'streaming' : ''}`}>
+        <div className={`ai-studio-message-text ${isStreaming ? 'streaming' : ''}`}>
           {isUser ? (
             <p>{message.content}</p>
           ) : (
             <ReactMarkdown>{message.content}</ReactMarkdown>
           )}
-          {isStreaming && <span className="cursor" />}
+          {isStreaming && <span className="ai-studio-cursor" />}
         </div>
 
         {!isUser && !isStreaming && (
-          <div className="message-actions">
-            <button className="action-btn" onClick={copyToClipboard} title="Copy to clipboard">
+          <div className="ai-studio-message-actions">
+            <button className="ai-studio-action-btn" onClick={copyToClipboard} title="Copy to clipboard">
               {copied ? (
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M13.5 4.5L6 12L2.5 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

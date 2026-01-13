@@ -1,17 +1,17 @@
-.main-layout {
+.ai-studio-main-layout {
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
 }
 
-.layout-body {
+.ai-studio-layout-body {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
 
-.layout-main {
+.ai-studio-layout-main {
   flex: 1;
   display: flex;
   flex-direction: column;

@@ -30,20 +30,20 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className={`modal modal-${size}`} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">{title}</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close">
+    <div className="ai-studio-modal-overlay" onClick={onClose}>
+      <div className={`ai-studio-modal ai-studio-modal-${size}`} onClick={(e) => e.stopPropagation()}>
+        <div className="ai-studio-modal-header">
+          <h2 className="ai-studio-modal-title">{title}</h2>
+          <button className="ai-studio-modal-close" onClick={onClose} aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
         </div>
-        <div className="modal-content">
+        <div className="ai-studio-modal-content">
           {children}
         </div>
-        {footer && <div className="modal-footer">{footer}</div>}
+        {footer && <div className="ai-studio-modal-footer">{footer}</div>}
       </div>
     </div>
   );

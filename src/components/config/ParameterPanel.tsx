@@ -1,5 +1,5 @@
 import { Slider, TagInput, Input, Button } from '../ui';
-import type { GenerationParameters } from '../../types';
+import type { GenerationParameters, Bot } from '../../types';
 import { DEFAULT_PARAMETERS, PARAMETER_LIMITS } from '../../types/parameters';
 import './ParameterPanel.css';
 
@@ -8,9 +8,11 @@ interface ParameterPanelProps {
   onChange: (params: GenerationParameters) => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  currentBot?: Bot | null;
+  onBotNameChange?: (name: string) => void;
 }
 
-export function ParameterPanel({ parameters, onChange, collapsed, onToggleCollapse }: ParameterPanelProps) {
+export function ParameterPanel({ parameters, onChange, collapsed, onToggleCollapse, currentBot, onBotNameChange }: ParameterPanelProps) {
   const updateParam = <K extends keyof GenerationParameters>(key: K, value: GenerationParameters[K]) => {
     onChange({ ...parameters, [key]: value });
   };
@@ -21,8 +23,8 @@ export function ParameterPanel({ parameters, onChange, collapsed, onToggleCollap
 
   if (collapsed) {
     return (
-      <div className="parameter-panel collapsed">
-        <button className="panel-toggle" onClick={onToggleCollapse} title="Expand parameters">
+      <div className="ai-studio-parameter-panel collapsed">
+        <button className="ai-studio-panel-toggle" onClick={onToggleCollapse} title="Expand parameters">
           {/* Arrow pointing left when collapsed (to expand/open) */}
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="M12.5 5L7.5 10L12.5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -33,23 +35,35 @@ export function ParameterPanel({ parameters, onChange, collapsed, onToggleCollap
   }
 
   return (
-    <div className="parameter-panel">
-      <div className="panel-header">
+    <div className="ai-studio-parameter-panel">
+      <div className="ai-studio-panel-header">
         {onToggleCollapse && (
-          <button className="panel-toggle" onClick={onToggleCollapse} title="Collapse panel">
+          <button className="ai-studio-panel-toggle" onClick={onToggleCollapse} title="Collapse panel">
             {/* Arrow pointing right when open (to collapse/close) */}
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         )}
-        <h3 className="panel-title">Parameters</h3>
+        <h3 className="ai-studio-panel-title">Parameters</h3>
         <Button variant="ghost" size="sm" onClick={resetToDefaults}>
           Reset
         </Button>
       </div>
 
-      <div className="panel-content">
+      {currentBot && (
+        <div className="ai-studio-bot-name-section">
+          <label className="ai-studio-bot-name-label">Bot Name</label>
+          <input
+            type="text"
+            className="ai-studio-bot-name-input"
+            value={currentBot.name}
+            onChange={(e) => onBotNameChange?.(e.target.value)}
+          />
+        </div>
+      )}
+
+      <div className="ai-studio-panel-content">
         <Slider
           label="Temperature"
           value={parameters.temperature}

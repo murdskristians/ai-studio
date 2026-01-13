@@ -1,10 +1,10 @@
-.chat-input-container {
+.ai-studio-chat-input-container {
   padding: 16px 24px 24px;
   background-color: var(--bg-primary);
   border-top: 1px solid var(--border-color);
 }
 
-.chat-input-wrapper {
+.ai-studio-chat-input-wrapper {
   display: flex;
   gap: 12px;
   align-items: center;
@@ -16,11 +16,11 @@
   transition: border-color var(--transition-fast);
 }
 
-.chat-input-wrapper:focus-within {
+.ai-studio-chat-input-wrapper:focus-within {
   border-color: var(--accent-blue);
 }
 
-.chat-input {
+.ai-studio-chat-input {
   flex: 1;
   background: transparent;
   border: none;
@@ -32,20 +32,28 @@
   max-height: 200px;
 }
 
-.chat-input::placeholder {
+textarea.ai-studio-chat-input:focus,
+textarea.ai-studio-chat-input:focus-visible {
+  outline: none !important;
+  outline-width: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.ai-studio-chat-input::placeholder {
   color: var(--text-muted);
 }
 
-.chat-input:disabled {
+.ai-studio-chat-input:disabled {
   opacity: 0.5;
 }
 
-.send-btn {
+.ai-studio-send-btn {
   flex-shrink: 0;
   padding: 8px !important;
 }
 
-.chat-input-hint {
+.ai-studio-chat-input-hint {
   text-align: center;
   font-size: 11px;
   color: var(--text-muted);

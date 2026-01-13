@@ -1,7 +1,7 @@
-.model-selector {
+.ai-studio-model-selector {
   min-width: 200px;
 }
 
-.model-selector .select {
+.ai-studio-model-selector .ai-studio-select {
   background-color: var(--bg-tertiary);
 }

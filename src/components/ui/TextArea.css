@@ -1,16 +1,16 @@
-.textarea-wrapper {
+.ai-studio-textarea-wrapper {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.textarea-label {
+.ai-studio-textarea-label {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
 }
 
-.textarea {
+.ai-studio-textarea {
   padding: 10px 12px;
   background-color: var(--bg-tertiary);
   border: 1px solid var(--border-color);
@@ -22,24 +22,24 @@
   transition: border-color var(--transition-fast);
 }
 
-.textarea:hover {
+.ai-studio-textarea:hover {
   border-color: var(--border-hover);
 }
 
-.textarea:focus {
+.ai-studio-textarea:focus {
   border-color: var(--accent-blue);
   outline: none;
 }
 
-.textarea::placeholder {
+.ai-studio-textarea::placeholder {
   color: var(--text-muted);
 }
 
-.textarea-error {
+.ai-studio-textarea-error {
   border-color: var(--accent-red);
 }
 
-.textarea-error-text {
+.ai-studio-textarea-error-text {
   font-size: 12px;
   color: var(--accent-red);
 }

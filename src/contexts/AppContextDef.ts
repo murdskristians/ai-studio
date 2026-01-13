@@ -21,6 +21,7 @@ export interface AppState {
   updateBot: (id: string, updates: Partial<Bot>) => void;
   deleteBot: (id: string) => void;
   exportBot: (id: string) => void;
+  exportDefaultAssistant: () => void;
   exportAllBots: () => void;
   importBots: (file: File) => Promise<number>;
   conversations: Conversation[];

@@ -28,12 +28,12 @@ export function Select({ label, options, value, onChange, className = '', id, ..
   const hasGroups = Object.keys(groupedOptions).length > 1 || (Object.keys(groupedOptions).length === 1 && Object.keys(groupedOptions)[0] !== '');
 
   return (
-    <div className={`select-wrapper ${className}`}>
-      {label && <label htmlFor={selectId} className="select-label">{label}</label>}
-      <div className="select-container">
+    <div className={`ai-studio-select-wrapper ${className}`}>
+      {label && <label htmlFor={selectId} className="ai-studio-select-label">{label}</label>}
+      <div className="ai-studio-select-container">
         <select
           id={selectId}
-          className="select"
+          className="ai-studio-select"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           {...props}
@@ -56,7 +56,7 @@ export function Select({ label, options, value, onChange, className = '', id, ..
             ))
           )}
         </select>
-        <div className="select-icon">
+        <div className="ai-studio-select-icon">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>

@@ -19,14 +19,14 @@ export function Slider({ label, value, min, max, step, onChange, description }: 
   const percentage = ((value - min) / (max - min)) * 100;
 
   return (
-    <div className="slider-wrapper">
-      <div className="slider-header">
-        <label className="slider-label">{label}</label>
-        <span className="slider-value">{value.toFixed(step < 1 ? 2 : 0)}</span>
+    <div className="ai-studio-slider-wrapper">
+      <div className="ai-studio-slider-header">
+        <label className="ai-studio-slider-label">{label}</label>
+        <span className="ai-studio-slider-value">{value.toFixed(step < 1 ? 2 : 0)}</span>
       </div>
       <input
         type="range"
-        className="slider"
+        className="ai-studio-slider"
         value={value}
         min={min}
         max={max}
@@ -34,11 +34,11 @@ export function Slider({ label, value, min, max, step, onChange, description }: 
         onChange={handleChange}
         style={{ '--slider-percentage': `${percentage}%` } as React.CSSProperties}
       />
-      <div className="slider-range">
+      <div className="ai-studio-slider-range">
         <span>{min}</span>
         <span>{max}</span>
       </div>
-      {description && <p className="slider-description">{description}</p>}
+      {description && <p className="ai-studio-slider-description">{description}</p>}
     </div>
   );
 }

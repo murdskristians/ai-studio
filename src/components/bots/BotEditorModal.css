@@ -1,30 +1,30 @@
-.bot-editor-form {
+.ai-studio-bot-editor-form {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-.form-section {
+.ai-studio-form-section {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.form-section-title {
+.ai-studio-form-section-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 4px;
 }
 
-.parameters-grid {
+.ai-studio-parameters-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
 @media (max-width: 560px) {
-  .parameters-grid {
+  .ai-studio-parameters-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -29,15 +29,15 @@ export function TagInput({ label, tags, onChange, placeholder = 'Type and press 
   };
 
   return (
-    <div className="tag-input-wrapper">
-      {label && <label className="tag-input-label">{label}</label>}
-      <div className="tag-input-container">
+    <div className="ai-studio-tag-input-wrapper">
+      {label && <label className="ai-studio-tag-input-label">{label}</label>}
+      <div className="ai-studio-tag-input-container">
         {tags.map((tag, index) => (
-          <span key={index} className="tag">
+          <span key={index} className="ai-studio-tag">
             {tag}
             <button
               type="button"
-              className="tag-remove"
+              className="ai-studio-tag-remove"
               onClick={() => removeTag(index)}
               aria-label={`Remove ${tag}`}
             >
@@ -50,7 +50,7 @@ export function TagInput({ label, tags, onChange, placeholder = 'Type and press 
         {tags.length < maxTags && (
           <input
             type="text"
-            className="tag-input"
+            className="ai-studio-tag-input"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -58,7 +58,7 @@ export function TagInput({ label, tags, onChange, placeholder = 'Type and press 
           />
         )}
       </div>
-      <span className="tag-input-hint">{tags.length}/{maxTags} sequences</span>
+      <span className="ai-studio-tag-input-hint">{tags.length}/{maxTags} sequences</span>
     </div>
   );
 }
