@@ -1,0 +1,40 @@
+name: Deploy to Test
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy-test:
+    runs-on: build-k8s
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create .env.test file
+        run: |
+          echo "REACT_APP_FIREBASE_API_KEY=${{ secrets.TEST_REACT_APP_FIREBASE_API_KEY }}" >> .env.test
+          echo "REACT_APP_FIREBASE_AUTH_DOMAIN=${{ secrets.TEST_REACT_APP_FIREBASE_AUTH_DOMAIN }}" >> .env.test
+          echo "REACT_APP_FIREBASE_PROJECT_ID=${{ secrets.TEST_REACT_APP_FIREBASE_PROJECT_ID }}" >> .env.test
+          echo "REACT_APP_FIREBASE_STORAGE_BUCKET=${{ secrets.TEST_REACT_APP_FIREBASE_STORAGE_BUCKET }}" >> .env.test
+          echo "REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.TEST_REACT_APP_FIREBASE_MESSAGING_SENDER_ID }}" >> .env.test
+          echo "REACT_APP_FIREBASE_APP_ID=${{ secrets.TEST_REACT_APP_FIREBASE_APP_ID }}" >> .env.test
+          echo "REACT_APP_FIREBASE_VAPID_KEY=${{ secrets.TEST_REACT_APP_FIREBASE_VAPID_KEY }}" >> .env.test
+          echo "REACT_APP_FIREBASE_DATABASE_URL=${{ secrets.TEST_REACT_APP_FIREBASE_DATABASE_URL }}" >> .env.test
+
+      - name: Build for Test
+        run: npm run build:test
+
+      - name: Deploy to Firebase Test
+        run: |
+          npm install -g firebase-tools
+          firebase deploy --only hosting:ai-studio-module --project hotcode-erp --token "${{ secrets.FIREBASE_TOKEN }}"
