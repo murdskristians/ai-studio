@@ -1,0 +1,19 @@
+import { TextareaHTMLAttributes } from 'react';
+import './TextArea.css';
+
+interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label?: string;
+  error?: string;
+}
+
+export function TextArea({ label, error, className = '', id, ...props }: TextAreaProps) {
+  const textareaId = id || label?.toLowerCase().replace(/\s+/g, '-');
+
+  return (
+    <div className={`textarea-wrapper ${className}`}>
+      {label && <label htmlFor={textareaId} className="textarea-label">{label}</label>}
+      <textarea id={textareaId} className={`textarea ${error ? 'textarea-error' : ''}`} {...props} />
+      {error && <span className="textarea-error-text">{error}</span>}
+    </div>
+  );
+}

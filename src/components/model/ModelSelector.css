@@ -1,0 +1,7 @@
+.model-selector {
+  min-width: 200px;
+}
+
+.model-selector .select {
+  background-color: var(--bg-tertiary);
+}

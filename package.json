@@ -1,0 +1,46 @@
+{
+  "name": "ai-studio-module",
+  "version": "1.0.0",
+  "description": "AI Studio Module - AI chat interface with multiple provider support",
+  "scripts": {
+    "start": "webpack serve --mode development",
+    "start:test": "webpack serve --mode development --env ENV_FILE=.env.test",
+    "build": "webpack --mode production",
+    "build:test": "webpack --mode production --env ENV_FILE=.env.test",
+    "build:prod": "webpack --mode production --env ENV_FILE=.env.production",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "groq-sdk": "^0.37.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^10.1.0",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "@babel/preset-react": "^7.22.15",
+    "@babel/preset-typescript": "^7.28.5",
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@types/uuid": "^11.0.0",
+    "babel-loader": "^9.1.3",
+    "css-loader": "^6.8.1",
+    "dotenv": "^17.2.3",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "html-webpack-plugin": "^5.5.3",
+    "style-loader": "^3.3.3",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.1"
+  }
+}
