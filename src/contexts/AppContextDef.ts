@@ -17,7 +17,7 @@ export interface AppState {
   bots: Bot[];
   currentBot: Bot | null;
   setCurrentBot: (bot: Bot | null) => void;
-  createBot: (bot: Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>) => Bot;
+  createBot: (bot?: Partial<Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>>) => Bot;
   updateBot: (id: string, updates: Partial<Bot>) => void;
   deleteBot: (id: string) => void;
   exportBot: (id: string) => void;

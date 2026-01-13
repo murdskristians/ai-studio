@@ -29,8 +29,8 @@ function AppContent() {
   const [editingBot, setEditingBot] = useState<Bot | null>(null);
 
   const handleCreateBot = () => {
-    setEditingBot(null);
-    setBotEditorOpen(true);
+    // Create bot directly with default values (no popup)
+    createBot();
   };
 
   const handleEditBot = (botId: string) => {
@@ -44,8 +44,6 @@ function AppContent() {
   const handleSaveBot = (botData: Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editingBot) {
       updateBot(editingBot.id, botData);
-    } else {
-      createBot(botData);
     }
   };
 
@@ -57,6 +55,7 @@ function AppContent() {
           <Sidebar
             onCreateBot={handleCreateBot}
             onEditBot={handleEditBot}
+            onDeleteBot={deleteBot}
           />
         }
         main={
