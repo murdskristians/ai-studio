@@ -1,20 +1,20 @@
-.select-wrapper {
+.ai-studio-select-wrapper {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.select-label {
+.ai-studio-select-label {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
 }
 
-.select-container {
+.ai-studio-select-container {
   position: relative;
 }
 
-.select {
+.ai-studio-select {
   width: 100%;
   padding: 10px 36px 10px 12px;
   background-color: var(--bg-tertiary);
@@ -27,27 +27,27 @@
   transition: border-color var(--transition-fast);
 }
 
-.select:hover {
+.ai-studio-select:hover {
   border-color: var(--border-hover);
 }
 
-.select:focus {
+.ai-studio-select:focus {
   border-color: var(--accent-blue);
   outline: none;
 }
 
-.select option {
+.ai-studio-select option {
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   padding: 8px;
 }
 
-.select optgroup {
+.ai-studio-select optgroup {
   font-weight: 600;
   color: var(--text-secondary);
 }
 
-.select-icon {
+.ai-studio-select-icon {
   position: absolute;
   right: 12px;
   top: 50%;

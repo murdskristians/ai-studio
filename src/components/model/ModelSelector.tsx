@@ -27,7 +27,7 @@ export function ModelSelector({ value, onChange, availableProviders }: ModelSele
   }));
 
   return (
-    <div className="model-selector">
+    <div className="ai-studio-model-selector">
       <Select
         value={value}
         onChange={onChange}

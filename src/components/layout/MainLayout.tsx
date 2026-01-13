@@ -10,11 +10,11 @@ interface MainLayoutProps {
 
 export function MainLayout({ header, sidebar, main, panel }: MainLayoutProps) {
   return (
-    <div className="main-layout">
+    <div className="ai-studio-main-layout">
       {header}
-      <div className="layout-body">
+      <div className="ai-studio-layout-body">
         {sidebar}
-        <main className="layout-main">
+        <main className="ai-studio-layout-main">
           {main}
         </main>
         {panel}

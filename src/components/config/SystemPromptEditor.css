@@ -1,11 +1,11 @@
-.system-prompt-editor {
+.ai-studio-system-prompt-editor {
   background-color: var(--bg-secondary);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   overflow: hidden;
 }
 
-.editor-header {
+.ai-studio-editor-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -14,27 +14,27 @@
   transition: background-color var(--transition-fast);
 }
 
-.editor-header:hover {
+.ai-studio-editor-header:hover {
   background-color: var(--bg-tertiary);
 }
 
-.editor-title-wrapper {
+.ai-studio-editor-title-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.editor-icon {
+.ai-studio-editor-icon {
   color: var(--accent-blue);
 }
 
-.editor-title {
+.ai-studio-editor-title {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
 }
 
-.collapse-btn {
+.ai-studio-collapse-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -44,35 +44,35 @@
   transition: all var(--transition-fast);
 }
 
-.collapse-btn:hover {
+.ai-studio-collapse-btn:hover {
   color: var(--text-primary);
   background-color: var(--bg-hover);
 }
 
-.editor-content {
+.ai-studio-editor-content {
   padding: 0 16px 16px;
 }
 
-.editor-content .textarea-wrapper {
+.ai-studio-editor-content .ai-studio-textarea-wrapper {
   margin-bottom: 8px;
 }
 
-.editor-content .textarea {
+.ai-studio-editor-content .ai-studio-textarea {
   min-height: 80px;
   font-size: 13px;
 }
 
-.editor-footer {
+.ai-studio-editor-footer {
   display: flex;
   justify-content: flex-end;
 }
 
-.char-count {
+.ai-studio-char-count {
   font-size: 11px;
   color: var(--text-muted);
 }
 
-.prompt-preview {
+.ai-studio-prompt-preview {
   padding: 0 16px 12px;
   font-size: 12px;
   color: var(--text-muted);
@@ -82,6 +82,6 @@
   white-space: nowrap;
 }
 
-.system-prompt-editor.collapsed .editor-header {
+.ai-studio-system-prompt-editor.collapsed .ai-studio-editor-header {
   padding-bottom: 8px;
 }

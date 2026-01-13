@@ -1,4 +1,4 @@
-.chat-container {
+.ai-studio-chat-container {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -6,23 +6,23 @@
   min-width: 0;
 }
 
-.chat-messages-wrapper {
+.ai-studio-chat-messages-wrapper {
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
 
-.system-prompt-section {
+.ai-studio-system-prompt-section {
   padding: 20px 24px;
   border-bottom: 1px solid var(--border-color);
 }
 
-.chat-messages {
+.ai-studio-chat-messages {
   flex: 1;
 }
 
-.chat-empty {
+.ai-studio-chat-empty {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -32,7 +32,7 @@
   text-align: center;
 }
 
-.empty-icon {
+.ai-studio-empty-icon {
   width: 80px;
   height: 80px;
   display: flex;
@@ -44,14 +44,14 @@
   margin-bottom: 24px;
 }
 
-.empty-title {
+.ai-studio-empty-title {
   font-size: 20px;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 12px;
 }
 
-.empty-description {
+.ai-studio-empty-description {
   font-size: 14px;
   color: var(--text-secondary);
   max-width: 400px;

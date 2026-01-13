@@ -1,16 +1,16 @@
-.tag-input-wrapper {
+.ai-studio-tag-input-wrapper {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.tag-input-label {
+.ai-studio-tag-input-label {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
 }
 
-.tag-input-container {
+.ai-studio-tag-input-container {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -22,11 +22,11 @@
   transition: border-color var(--transition-fast);
 }
 
-.tag-input-container:focus-within {
+.ai-studio-tag-input-container:focus-within {
   border-color: var(--accent-blue);
 }
 
-.tag {
+.ai-studio-tag {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -37,7 +37,7 @@
   color: var(--text-primary);
 }
 
-.tag-remove {
+.ai-studio-tag-remove {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -47,12 +47,12 @@
   transition: all var(--transition-fast);
 }
 
-.tag-remove:hover {
+.ai-studio-tag-remove:hover {
   color: var(--accent-red);
   background-color: rgba(239, 68, 68, 0.2);
 }
 
-.tag-input {
+.ai-studio-tag-input {
   flex: 1;
   min-width: 100px;
   padding: 4px 0;
@@ -63,11 +63,11 @@
   font-size: 14px;
 }
 
-.tag-input::placeholder {
+.ai-studio-tag-input::placeholder {
   color: var(--text-muted);
 }
 
-.tag-input-hint {
+.ai-studio-tag-input-hint {
   font-size: 11px;
   color: var(--text-muted);
 }

@@ -1,4 +1,4 @@
-:root {
+.ai-studio-root {
   /* Colors - Dark Theme */
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
@@ -48,6 +48,13 @@
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 200ms ease;
+
+  /* App container styles */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
 }
 
 * {
@@ -56,83 +63,80 @@
   box-sizing: border-box;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  line-height: 1.5;
-  min-height: 100vh;
-}
 
-#root {
-  min-height: 100vh;
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
+/* Scrollbar styling - scoped to ai-studio */
+.ai-studio-root ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-::-webkit-scrollbar-track {
+.ai-studio-root ::-webkit-scrollbar-track {
   background: var(--bg-secondary);
 }
 
-::-webkit-scrollbar-thumb {
+.ai-studio-root ::-webkit-scrollbar-thumb {
   background: var(--bg-tertiary);
   border-radius: var(--radius-full);
 }
 
-::-webkit-scrollbar-thumb:hover {
+.ai-studio-root ::-webkit-scrollbar-thumb:hover {
   background: var(--bg-hover);
 }
 
-/* Focus styles */
-*:focus-visible {
+/* Focus styles - scoped */
+.ai-studio-root *:focus-visible {
   outline: 2px solid var(--accent-blue);
   outline-offset: 2px;
 }
 
-/* Selection */
-::selection {
+/* Selection - scoped */
+.ai-studio-root ::selection {
   background-color: var(--accent-blue);
   color: white;
 }
 
-/* Typography */
-h1, h2, h3, h4, h5, h6 {
+/* Typography - scoped */
+.ai-studio-root h1,
+.ai-studio-root h2,
+.ai-studio-root h3,
+.ai-studio-root h4,
+.ai-studio-root h5,
+.ai-studio-root h6 {
   font-weight: 600;
   line-height: 1.3;
 }
 
-a {
+.ai-studio-root a {
   color: var(--accent-blue);
   text-decoration: none;
 }
 
-a:hover {
+.ai-studio-root a:hover {
   text-decoration: underline;
 }
 
-/* Form elements base */
-input, textarea, select, button {
+/* Form elements base - scoped */
+.ai-studio-root input,
+.ai-studio-root textarea,
+.ai-studio-root select,
+.ai-studio-root button {
   font-family: inherit;
   font-size: inherit;
 }
 
-button {
+.ai-studio-root button {
   cursor: pointer;
   border: none;
   background: none;
 }
 
-button:disabled {
+.ai-studio-root button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
 /* Utility classes */
-.sr-only {
+.ai-studio-sr-only {
   position: absolute;
   width: 1px;
   height: 1px;

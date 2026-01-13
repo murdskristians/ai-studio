@@ -43,9 +43,9 @@ export function ChatContainer({
   }, [messages]);
 
   return (
-    <div className="chat-container">
-      <div className="chat-messages-wrapper">
-        <div className="system-prompt-section">
+    <div className="ai-studio-chat-container">
+      <div className="ai-studio-chat-messages-wrapper">
+        <div className="ai-studio-system-prompt-section">
           <SystemPromptEditor
             value={systemPrompt}
             onChange={onSystemPromptChange}
@@ -53,20 +53,20 @@ export function ChatContainer({
         </div>
 
         {!hasMessages ? (
-          <div className="chat-empty">
-            <div className="empty-icon">
+          <div className="ai-studio-chat-empty">
+            <div className="ai-studio-empty-icon">
               <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
                 <path d="M24 4L30 14H42L33 22L36 34L24 28L12 34L15 22L6 14H18L24 4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
               </svg>
             </div>
-            <h3 className="empty-title">Start a conversation</h3>
-            <p className="empty-description">
+            <h3 className="ai-studio-empty-title">Start a conversation</h3>
+            <p className="ai-studio-empty-description">
               Type a message below to begin chatting with the AI assistant.
               Configure the system prompt and parameters to customize behavior.
             </p>
           </div>
         ) : (
-          <div className="chat-messages">
+          <div className="ai-studio-chat-messages">
             {messages.map((message) => (
               <ChatMessage
                 key={message.id}

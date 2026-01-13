@@ -1,4 +1,4 @@
-.modal-overlay {
+.ai-studio-modal-overlay {
   position: fixed;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.7);
@@ -7,10 +7,10 @@
   justify-content: center;
   z-index: 1000;
   padding: 20px;
-  animation: fadeIn var(--transition-fast);
+  animation: ai-studio-fadeIn var(--transition-fast);
 }
 
-@keyframes fadeIn {
+@keyframes ai-studio-fadeIn {
   from {
     opacity: 0;
   }
@@ -19,17 +19,17 @@
   }
 }
 
-.modal {
+.ai-studio-modal {
   background-color: var(--bg-secondary);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  animation: slideIn var(--transition-normal);
+  animation: ai-studio-slideIn var(--transition-normal);
 }
 
-@keyframes slideIn {
+@keyframes ai-studio-slideIn {
   from {
     opacity: 0;
     transform: translateY(-20px);
@@ -40,22 +40,22 @@
   }
 }
 
-.modal-sm {
+.ai-studio-modal-sm {
   width: 100%;
   max-width: 400px;
 }
 
-.modal-md {
+.ai-studio-modal-md {
   width: 100%;
   max-width: 560px;
 }
 
-.modal-lg {
+.ai-studio-modal-lg {
   width: 100%;
   max-width: 720px;
 }
 
-.modal-header {
+.ai-studio-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -63,31 +63,31 @@
   border-bottom: 1px solid var(--border-color);
 }
 
-.modal-title {
+.ai-studio-modal-title {
   font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.modal-close {
+.ai-studio-modal-close {
   color: var(--text-muted);
   padding: 4px;
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
 }
 
-.modal-close:hover {
+.ai-studio-modal-close:hover {
   color: var(--text-primary);
   background-color: var(--bg-tertiary);
 }
 
-.modal-content {
+.ai-studio-modal-content {
   padding: 24px;
   overflow-y: auto;
   flex: 1;
 }
 
-.modal-footer {
+.ai-studio-modal-footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;

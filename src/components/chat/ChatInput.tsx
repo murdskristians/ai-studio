@@ -76,11 +76,11 @@ export function ChatInput({ onSend, disabled, placeholder = 'Type a message...',
   }, [value]);
 
   return (
-    <div className="chat-input-container">
-      <div className="chat-input-wrapper">
+    <div className="ai-studio-chat-input-container">
+      <div className="ai-studio-chat-input-wrapper">
         <textarea
           ref={textareaRef}
-          className="chat-input"
+          className="ai-studio-chat-input"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -91,7 +91,7 @@ export function ChatInput({ onSend, disabled, placeholder = 'Type a message...',
         <Button
           onClick={handleSubmit}
           disabled={!value.trim() || disabled}
-          className="send-btn"
+          className="ai-studio-send-btn"
           title="Send message (Enter)"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -99,7 +99,7 @@ export function ChatInput({ onSend, disabled, placeholder = 'Type a message...',
           </svg>
         </Button>
       </div>
-      <p className="chat-input-hint">Press Enter to send, Shift+Enter for new line</p>
+      <p className="ai-studio-chat-input-hint">Press Enter to send, Shift+Enter for new line</p>
     </div>
   );
 }

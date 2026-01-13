@@ -16,7 +16,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`btn btn-${variant} btn-${size} ${className}`}
+      className={`ai-studio-btn ai-studio-btn-${variant} ai-studio-btn-${size} ${className}`}
       {...props}
     >
       {children}

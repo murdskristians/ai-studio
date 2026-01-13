@@ -74,9 +74,9 @@ function BotEditorModalContent({ bot, onSave, onClose, onDelete }: Omit<BotEdito
         </>
       }
     >
-      <div className="bot-editor-form">
-        <div className="form-section">
-          <h4 className="form-section-title">Basic Info</h4>
+      <div className="ai-studio-bot-editor-form">
+        <div className="ai-studio-form-section">
+          <h4 className="ai-studio-form-section-title">Basic Info</h4>
           <Input
             label="Name"
             value={name}
@@ -91,8 +91,8 @@ function BotEditorModalContent({ bot, onSave, onClose, onDelete }: Omit<BotEdito
           />
         </div>
 
-        <div className="form-section">
-          <h4 className="form-section-title">System Instructions</h4>
+        <div className="ai-studio-form-section">
+          <h4 className="ai-studio-form-section-title">System Instructions</h4>
           <TextArea
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
@@ -101,8 +101,8 @@ function BotEditorModalContent({ bot, onSave, onClose, onDelete }: Omit<BotEdito
           />
         </div>
 
-        <div className="form-section">
-          <h4 className="form-section-title">Preferred Model</h4>
+        <div className="ai-studio-form-section">
+          <h4 className="ai-studio-form-section-title">Preferred Model</h4>
           <Select
             value={preferredModel}
             onChange={setPreferredModel}
@@ -110,9 +110,9 @@ function BotEditorModalContent({ bot, onSave, onClose, onDelete }: Omit<BotEdito
           />
         </div>
 
-        <div className="form-section">
-          <h4 className="form-section-title">Default Parameters</h4>
-          <div className="parameters-grid">
+        <div className="ai-studio-form-section">
+          <h4 className="ai-studio-form-section-title">Default Parameters</h4>
+          <div className="ai-studio-parameters-grid">
             <Slider
               label="Temperature"
               value={parameters.temperature}

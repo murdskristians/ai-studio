@@ -96,9 +96,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <div className="ai-studio-root">
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </div>
   );
 }
 
