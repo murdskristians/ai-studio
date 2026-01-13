@@ -5,6 +5,7 @@ import { ChatContainer } from './components/chat';
 import { ParameterPanel } from './components/config';
 import { BotEditorModal } from './components/bots';
 import type { Bot } from './types';
+import './index.css';
 
 function AppContent() {
   const {
