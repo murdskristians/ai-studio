@@ -8,6 +8,7 @@
     "build": "webpack --mode production",
     "build:test": "webpack --mode production --env ENV_FILE=.env.test",
     "build:prod": "webpack --mode production --env ENV_FILE=.env.production",
+    "build:qa": "webpack --mode production --env ENV_FILE=.env.qa",
     "lint": "eslint ."
   },
   "dependencies": {
