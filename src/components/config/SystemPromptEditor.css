@@ -35,6 +35,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+}
+
+.ai-studio-editor-checkmark {
+  color: var(--accent-blue);
+  flex-shrink: 0;
 }
 
 .ai-studio-editor-icon {
@@ -141,12 +147,4 @@
   color: var(--text-muted);
 }
 
-.ai-studio-prompt-preview {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-style: italic;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
