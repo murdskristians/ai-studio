@@ -49,16 +49,34 @@
   border-bottom: 1px solid var(--border-color);
 }
 
-.ai-studio-bot-name-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  margin-bottom: 8px;
+.ai-studio-bot-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-studio-system-prompt-section {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ai-studio-system-prompt-section.both-collapsed {
+  flex: 0 0 auto;
+}
+
+.ai-studio-system-prompt-section.expanded {
+  flex: 1;
+  min-height: 0;
+}
+
+.ai-studio-parameters-section.both-collapsed + .ai-studio-system-prompt-section.both-collapsed {
+  margin-top: 0;
 }
 
 .ai-studio-bot-name-input {
-  width: 100%;
+  flex: 1;
   padding: 10px 12px;
   font-size: 14px;
   font-weight: 500;
@@ -67,6 +85,14 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
+}
+
+.ai-studio-bot-name-text {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
 .ai-studio-bot-name-input:hover {
@@ -79,13 +105,86 @@
   background-color: var(--bg-secondary);
 }
 
+.ai-studio-parameters-section {
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ai-studio-parameters-section.both-collapsed {
+  flex: 0 0 auto;
+}
+
+.ai-studio-parameters-section.expanded {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ai-studio-parameters-section:not(.expanded):not(.both-collapsed) {
+  flex: 0 0 auto;
+}
+
+.ai-studio-parameters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  transition: background-color var(--transition-fast);
+  flex-shrink: 0;
+  height: 48px;
+  box-sizing: border-box;
+  gap: 12px;
+  line-height: 1;
+}
+
+.ai-studio-parameters-header:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.ai-studio-parameters-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  cursor: pointer;
+  flex: 1;
+}
+
+.ai-studio-parameters-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-studio-parameters-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.ai-studio-parameters-toggle:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
 .ai-studio-panel-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-height: 0;
 }
 
 @media (max-width: 1024px) {

@@ -121,6 +121,10 @@ export function AppProvider({ children }: AppProviderProps) {
     );
   }, []);
 
+  const deleteMessage = useCallback((id: string) => {
+    setMessages((prev) => prev.filter((msg) => msg.id !== id));
+  }, []);
+
   const clearMessages = useCallback(() => {
     setMessages([]);
     setCurrentConversation(null);
@@ -547,6 +551,7 @@ export function AppProvider({ children }: AppProviderProps) {
       messages,
       addMessage,
       updateMessage,
+      deleteMessage,
       clearMessages,
       bots,
       currentBot: currentBotValue,
@@ -584,6 +589,7 @@ export function AppProvider({ children }: AppProviderProps) {
       messages,
       addMessage,
       updateMessage,
+      deleteMessage,
       clearMessages,
       bots,
       currentBotValue,

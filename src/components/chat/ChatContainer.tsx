@@ -1,14 +1,12 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
-import { SystemPromptEditor } from '../config';
+import { useApp } from '../../contexts';
 import type { Message } from '../../types';
 import './ChatContainer.css';
 
 interface ChatContainerProps {
   messages: Message[];
-  systemPrompt: string;
-  onSystemPromptChange: (value: string) => void;
   onSendMessage: (message: string) => void;
   isLoading?: boolean;
   streamingMessageId?: string | null;
@@ -16,12 +14,11 @@ interface ChatContainerProps {
 
 export function ChatContainer({
   messages,
-  systemPrompt,
-  onSystemPromptChange,
   onSendMessage,
   isLoading,
   streamingMessageId,
 }: ChatContainerProps) {
+  const { updateMessage, deleteMessage, sendMessage } = useApp();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -42,16 +39,51 @@ export function ChatContainer({
       .reverse();
   }, [messages]);
 
+  const handleEdit = async (messageId: string, newContent: string, shouldResend: boolean) => {
+    updateMessage(messageId, newContent);
+    
+    if (shouldResend) {
+      const messageIndex = messages.findIndex(m => m.id === messageId);
+      if (messageIndex === -1) return;
+
+      const message = messages[messageIndex];
+      if (message.role === 'user') {
+        const nextMessageIndex = messageIndex + 1;
+        if (nextMessageIndex < messages.length && messages[nextMessageIndex].role === 'assistant') {
+          deleteMessage(messages[nextMessageIndex].id);
+        }
+        await sendMessage(newContent);
+      }
+    }
+  };
+
+  const handleRegenerate = async (messageId: string) => {
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1) return;
+
+    const message = messages[messageIndex];
+    
+    if (message.role === 'user') {
+      const nextMessageIndex = messageIndex + 1;
+      if (nextMessageIndex < messages.length && messages[nextMessageIndex].role === 'assistant') {
+        deleteMessage(messages[nextMessageIndex].id);
+      }
+      await sendMessage(message.content);
+    } else if (message.role === 'assistant') {
+      const userMessageIndex = messageIndex - 1;
+      if (userMessageIndex < 0) return;
+
+      const userMessage = messages[userMessageIndex];
+      if (userMessage.role !== 'user') return;
+
+      deleteMessage(messageId);
+      await sendMessage(userMessage.content);
+    }
+  };
+
   return (
     <div className="ai-studio-chat-container">
       <div className="ai-studio-chat-messages-wrapper">
-        <div className="ai-studio-system-prompt-section">
-          <SystemPromptEditor
-            value={systemPrompt}
-            onChange={onSystemPromptChange}
-          />
-        </div>
-
         {!hasMessages ? (
           <div className="ai-studio-chat-empty">
             <div className="ai-studio-empty-icon">
@@ -72,6 +104,9 @@ export function ChatContainer({
                 key={message.id}
                 message={message}
                 isStreaming={message.id === streamingMessageId}
+                onEdit={handleEdit}
+                onDelete={deleteMessage}
+                onRegenerate={handleRegenerate}
               />
             ))}
             <div ref={messagesEndRef} />

@@ -1,5 +1,5 @@
 export interface GenerationParameters {
-  temperature: number;      // 0-1, default 1
+  temperature: number;      // 0.1-2, default 1
   topP: number;             // 0-1, default 0.95
   maxTokens: number;        // default 65535
   stopSequences: string[];  // max 5 sequences
@@ -21,7 +21,7 @@ export interface ParameterLimits {
 }
 
 export const PARAMETER_LIMITS: ParameterLimits = {
-  temperature: { min: 0, max: 1, step: 0.01 },
+  temperature: { min: 0.1, max: 2, step: 0.1 },
   topP: { min: 0, max: 1, step: 0.01 },
   maxTokens: { min: 1, max: 65535, step: 1 },
 };

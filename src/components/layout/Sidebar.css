@@ -140,9 +140,59 @@
 .ai-studio-item-text {
   flex: 1;
   font-size: 13px;
+  line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.ai-studio-item-edit-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+}
+
+.ai-studio-item-edit-input {
+  flex: 1;
+  padding: 0 8px;
+  height: 20px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--accent-blue);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 20px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.ai-studio-item-edit-input:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.ai-studio-item-confirm-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  color: var(--accent-blue);
+  background-color: var(--bg-tertiary);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.ai-studio-item-confirm-btn:hover {
+  background-color: var(--accent-blue);
+  color: white;
 }
 
 .ai-studio-item-meta {
