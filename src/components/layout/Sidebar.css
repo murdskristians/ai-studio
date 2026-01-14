@@ -20,6 +20,7 @@
   justify-content: space-between;
   padding: 16px;
   border-bottom: 1px solid var(--border-color);
+  height: 56px;
 }
 
 .ai-studio-new-chat-btn {
@@ -30,11 +31,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  padding: 4px;
   color: var(--text-muted);
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
-  margin-left: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .ai-studio-sidebar.collapsed .ai-studio-sidebar-toggle {
@@ -49,7 +53,6 @@
 .ai-studio-sidebar-content {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
 }
 
 .ai-studio-sidebar-section {
@@ -60,21 +63,29 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
+  padding: 0 16px;
+  height: 56px;
+  border-bottom: 1px solid var(--border-color);
+  gap: 12px;
 }
 
 .ai-studio-section-title {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
 }
 
 .ai-studio-section-actions {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.ai-studio-section-action.new-bot {
+  margin-left: auto;
+  margin-right: 4px;
 }
 
 .ai-studio-section-action {

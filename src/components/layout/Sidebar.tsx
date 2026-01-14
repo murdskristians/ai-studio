@@ -89,25 +89,20 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
 
   return (
     <aside className="ai-studio-sidebar">
-      <div className="ai-studio-sidebar-header">
-        <Button variant="primary" size="sm" onClick={onCreateBot} className="ai-studio-new-chat-btn">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          New Bot
-        </Button>
-        <button className="ai-studio-sidebar-toggle" onClick={() => setSidebarCollapsed(true)}>
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M12.5 5L7.5 10L12.5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </div>
-
       <div className="ai-studio-sidebar-content">
         {/* Bots Section */}
         <div className="ai-studio-sidebar-section">
           <div className="ai-studio-section-header">
             <h3 className="ai-studio-section-title">Bots</h3>
+            <button
+              className="ai-studio-section-action new-bot"
+              onClick={onCreateBot}
+              title="New Bot"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
             <div className="ai-studio-section-actions">
               <button
                 className="ai-studio-section-action"
@@ -121,6 +116,11 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
                 </svg>
               </button>
             </div>
+            <button className="ai-studio-sidebar-toggle" onClick={() => setSidebarCollapsed(true)}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M12.5 5L7.5 10L12.5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
 
           <div className="ai-studio-section-list">

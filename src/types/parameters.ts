@@ -1,9 +1,9 @@
 export interface GenerationParameters {
-  temperature: number;      // 0.1-2, default 1
-  topP: number;             // 0-1, default 0.95
-  maxTokens: number;        // default 65535
-  stopSequences: string[];  // max 5 sequences
-  thinkingMode: boolean;    // enable thinking/reasoning mode
+  temperature: number; // 0.1-2, default 1
+  topP: number; // 0-1, default 0.95
+  maxTokens: number; // default 65535
+  stopSequences: string[]; // max 5 sequences
+  thinkingMode: boolean; // enable thinking/reasoning mode
 }
 
 export const DEFAULT_PARAMETERS: GenerationParameters = {
