@@ -26,14 +26,16 @@ export class GeminiProvider extends BaseProvider {
       generationConfig: {
         temperature: params.parameters.temperature,
         topP: params.parameters.topP,
-        topK: params.parameters.topK,
         maxOutputTokens: params.parameters.maxTokens,
-        stopSequences: params.parameters.stopSequences.length > 0 ? params.parameters.stopSequences : undefined,
+        stopSequences:
+          params.parameters.stopSequences.length > 0
+            ? params.parameters.stopSequences
+            : undefined,
       },
     });
 
     // Convert messages to Gemini format
-    const history = params.messages.slice(0, -1).map(msg => ({
+    const history = params.messages.slice(0, -1).map((msg) => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }],
     }));
@@ -41,7 +43,10 @@ export class GeminiProvider extends BaseProvider {
     const lastMessage = params.messages[params.messages.length - 1];
 
     const chat = model.startChat({
-      history: history as { role: 'user' | 'model'; parts: { text: string }[] }[],
+      history: history as {
+        role: 'user' | 'model';
+        parts: { text: string }[];
+      }[],
     });
 
     const result = await chat.sendMessageStream(lastMessage.content);
@@ -62,7 +67,9 @@ export class GeminiProvider extends BaseProvider {
     }
 
     try {
-      const model = this.client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = this.client.getGenerativeModel({
+        model: 'gemini-1.5-flash',
+      });
       await model.generateContent('Hi');
       return true;
     } catch {

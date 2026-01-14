@@ -5,3 +5,4 @@ export { Slider } from './Slider';
 export { Select } from './Select';
 export { Modal } from './Modal';
 export { TagInput } from './TagInput';
+export { Toggle } from './Toggle';

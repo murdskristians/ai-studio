@@ -56,7 +56,7 @@ export function ChatContainer({
           <div className="ai-studio-chat-empty">
             <div className="ai-studio-empty-icon">
               <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                <path d="M24 4L30 14H42L33 22L36 34L24 28L12 34L15 22L6 14H18L24 4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                <path d="M24 9L30 19H42L33 27L36 39L24 33L12 39L15 27L6 19H18L24 9Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
               </svg>
             </div>
             <h3 className="ai-studio-empty-title">Start a conversation</h3>
