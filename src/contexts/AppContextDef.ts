@@ -13,6 +13,7 @@ export interface AppState {
   messages: Message[];
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Message;
   updateMessage: (id: string, content: string) => void;
+  deleteMessage: (id: string) => void;
   clearMessages: () => void;
   bots: Bot[];
   currentBot: Bot | null;

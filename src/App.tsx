@@ -63,8 +63,6 @@ function AppContent() {
         main={
           <ChatContainer
             messages={messages}
-            systemPrompt={systemPrompt}
-            onSystemPromptChange={setSystemPrompt}
             onSendMessage={sendMessage}
             isLoading={isLoading}
             streamingMessageId={streamingMessageId}
@@ -78,6 +76,8 @@ function AppContent() {
             onToggleCollapse={() => setParameterPanelCollapsed(!parameterPanelCollapsed)}
             currentBot={currentBot}
             onBotNameChange={(name) => currentBot && updateBot(currentBot.id, { name })}
+            systemPrompt={systemPrompt}
+            onSystemPromptChange={setSystemPrompt}
           />
         }
       />

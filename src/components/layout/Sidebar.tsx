@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button, Modal } from '../ui';
 import { useApp } from '../../contexts';
 import './Sidebar.css';
@@ -11,6 +11,9 @@ interface SidebarProps {
 
 export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
   const [botToDelete, setBotToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [editingBotId, setEditingBotId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState<string>('');
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   const {
     bots,
@@ -21,7 +24,15 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
     exportBot,
     exportDefaultAssistant,
     exportAllBots,
+    updateBot,
   } = useApp();
+
+  useEffect(() => {
+    if (editingBotId && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingBotId]);
 
   const handleDeleteClick = (e: React.MouseEvent, botId: string, botName: string) => {
     e.stopPropagation();
@@ -32,6 +43,35 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
     if (botToDelete && onDeleteBot) {
       onDeleteBot(botToDelete.id);
       setBotToDelete(null);
+    }
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent, botId: string, botName: string) => {
+    e.stopPropagation();
+    setEditingBotId(botId);
+    setEditingName(botName);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingBotId && editingName.trim()) {
+      updateBot(editingBotId, { name: editingName.trim() });
+      setEditingBotId(null);
+      setEditingName('');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingBotId(null);
+    setEditingName('');
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveEdit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancelEdit();
     }
   };
 
@@ -49,25 +89,20 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
 
   return (
     <aside className="ai-studio-sidebar">
-      <div className="ai-studio-sidebar-header">
-        <Button variant="primary" size="sm" onClick={onCreateBot} className="ai-studio-new-chat-btn">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          New Bot
-        </Button>
-        <button className="ai-studio-sidebar-toggle" onClick={() => setSidebarCollapsed(true)}>
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M12.5 5L7.5 10L12.5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </div>
-
       <div className="ai-studio-sidebar-content">
         {/* Bots Section */}
         <div className="ai-studio-sidebar-section">
           <div className="ai-studio-section-header">
             <h3 className="ai-studio-section-title">Bots</h3>
+            <button
+              className="ai-studio-section-action new-bot"
+              onClick={onCreateBot}
+              title="New Bot"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
             <div className="ai-studio-section-actions">
               <button
                 className="ai-studio-section-action"
@@ -81,6 +116,11 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
                 </svg>
               </button>
             </div>
+            <button className="ai-studio-sidebar-toggle" onClick={() => setSidebarCollapsed(true)}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M12.5 5L7.5 10L12.5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
 
           <div className="ai-studio-section-list">
@@ -114,7 +154,12 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
               <button
                 key={bot.id}
                 className={`ai-studio-list-item ${currentBot?.id === bot.id ? 'active' : ''}`}
-                onClick={() => setCurrentBot(bot)}
+                onClick={() => {
+                  if (editingBotId !== bot.id) {
+                    setCurrentBot(bot);
+                  }
+                }}
+                onDoubleClick={(e) => handleDoubleClick(e, bot.id, bot.name)}
               >
                 <span className="ai-studio-item-icon">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -124,8 +169,35 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
                     <path d="M5 10.5C5.5 11.5 6.5 12 8 12C9.5 12 10.5 11.5 11 10.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
                   </svg>
                 </span>
-                <span className="ai-studio-item-text">{bot.name}</span>
-                <div className="ai-studio-item-actions">
+                {editingBotId === bot.id ? (
+                  <div className="ai-studio-item-edit-wrapper">
+                    <input
+                      ref={editInputRef}
+                      type="text"
+                      className="ai-studio-item-edit-input"
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      onKeyDown={handleEditKeyDown}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <button
+                      className="ai-studio-item-confirm-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSaveEdit();
+                      }}
+                      title="Confirm"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <span className="ai-studio-item-text">{bot.name}</span>
+                )}
+                {editingBotId !== bot.id && (
+                  <div className="ai-studio-item-actions">
                   <button
                     className="ai-studio-item-action"
                     onClick={(e) => {
@@ -163,7 +235,8 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
                       </svg>
                     </button>
                   )}
-                </div>
+                  </div>
+                )}
               </button>
             ))}
           </div>
