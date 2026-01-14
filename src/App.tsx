@@ -4,6 +4,7 @@ import { MainLayout, Header, Sidebar, SettingsModal } from './components/layout'
 import { ChatContainer } from './components/chat';
 import { ParameterPanel } from './components/config';
 import { BotEditorModal } from './components/bots';
+import { ComparisonView } from './components/comparison';
 import type { Bot } from './types';
 import './index.css';
 
@@ -24,6 +25,7 @@ function AppContent() {
     createBot,
     updateBot,
     deleteBot,
+    comparisonMode,
   } = useApp();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -51,36 +53,40 @@ function AppContent() {
 
   return (
     <>
-      <MainLayout
-        header={<Header onOpenSettings={() => setSettingsOpen(true)} />}
-        sidebar={
-          <Sidebar
-            onCreateBot={handleCreateBot}
-            onEditBot={handleEditBot}
-            onDeleteBot={deleteBot}
-          />
-        }
-        main={
-          <ChatContainer
-            messages={messages}
-            onSendMessage={sendMessage}
-            isLoading={isLoading}
-            streamingMessageId={streamingMessageId}
-          />
-        }
-        panel={
-          <ParameterPanel
-            parameters={parameters}
-            onChange={setParameters}
-            collapsed={parameterPanelCollapsed}
-            onToggleCollapse={() => setParameterPanelCollapsed(!parameterPanelCollapsed)}
-            currentBot={currentBot}
-            onBotNameChange={(name) => currentBot && updateBot(currentBot.id, { name })}
-            systemPrompt={systemPrompt}
-            onSystemPromptChange={setSystemPrompt}
-          />
-        }
-      />
+      {comparisonMode ? (
+        <ComparisonView />
+      ) : (
+        <MainLayout
+          header={<Header onOpenSettings={() => setSettingsOpen(true)} />}
+          sidebar={
+            <Sidebar
+              onCreateBot={handleCreateBot}
+              onEditBot={handleEditBot}
+              onDeleteBot={deleteBot}
+            />
+          }
+          main={
+            <ChatContainer
+              messages={messages}
+              onSendMessage={sendMessage}
+              isLoading={isLoading}
+              streamingMessageId={streamingMessageId}
+            />
+          }
+          panel={
+            <ParameterPanel
+              parameters={parameters}
+              onChange={setParameters}
+              collapsed={parameterPanelCollapsed}
+              onToggleCollapse={() => setParameterPanelCollapsed(!parameterPanelCollapsed)}
+              currentBot={currentBot}
+              onBotNameChange={(name) => currentBot && updateBot(currentBot.id, { name })}
+              systemPrompt={systemPrompt}
+              onSystemPromptChange={setSystemPrompt}
+            />
+          }
+        />
+      )}
 
       <SettingsModal
         isOpen={settingsOpen}

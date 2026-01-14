@@ -1,0 +1,80 @@
+.ai-studio-comparison-chat-section {
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--bg-secondary);
+  min-height: 56px;
+  width: 100%;
+  flex: 1;
+}
+
+.ai-studio-comparison-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  flex-shrink: 0;
+  height: 56px;
+  box-sizing: border-box;
+  gap: 12px;
+  line-height: 1;
+  background-color: var(--bg-secondary);
+  position: relative;
+}
+
+
+.ai-studio-comparison-chat-header:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.ai-studio-comparison-chat-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  cursor: pointer;
+  flex: 1;
+}
+
+.ai-studio-comparison-chat-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.ai-studio-comparison-chat-toggle:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.ai-studio-comparison-chat-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-studio-comparison-chat-section.collapsed .ai-studio-comparison-chat-content {
+  display: none;
+}
+
+.ai-studio-comparison-chat-section.collapsed {
+  flex: 0 0 auto;
+}
+
+.ai-studio-comparison-chat-content .ai-studio-chat-container {
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+}

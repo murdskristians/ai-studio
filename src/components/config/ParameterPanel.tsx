@@ -14,25 +14,58 @@ interface ParameterPanelProps {
   onBotNameChange?: (name: string) => void;
   systemPrompt?: string;
   onSystemPromptChange?: (value: string) => void;
+  hideBotName?: boolean;
+  // External control for comparison mode
+  parametersCollapsedProp?: boolean;
+  onParametersToggle?: () => void;
+  systemPromptCollapsedProp?: boolean;
+  onSystemPromptToggle?: () => void;
 }
 
-export function ParameterPanel({ parameters, onChange, collapsed, onToggleCollapse, currentBot, onBotNameChange, systemPrompt, onSystemPromptChange }: ParameterPanelProps) {
-  const [systemPromptCollapsed, setSystemPromptCollapsed] = useState(true);
-  const [parametersCollapsed, setParametersCollapsed] = useState(false);
+export function ParameterPanel({
+  parameters,
+  onChange,
+  collapsed,
+  onToggleCollapse,
+  currentBot,
+  onBotNameChange,
+  systemPrompt,
+  onSystemPromptChange,
+  hideBotName,
+  parametersCollapsedProp,
+  onParametersToggle,
+  systemPromptCollapsedProp,
+  onSystemPromptToggle,
+}: ParameterPanelProps) {
+  const [systemPromptCollapsedInternal, setSystemPromptCollapsedInternal] = useState(true);
+  const [parametersCollapsedInternal, setParametersCollapsedInternal] = useState(false);
+
+  // Use external props if provided, otherwise use internal state
+  const isExternallyControlled = parametersCollapsedProp !== undefined;
+  const parametersCollapsed = isExternallyControlled ? parametersCollapsedProp : parametersCollapsedInternal;
+  const systemPromptCollapsed = isExternallyControlled ? (systemPromptCollapsedProp ?? true) : systemPromptCollapsedInternal;
 
   const handleSystemPromptToggle = () => {
-    const newState = !systemPromptCollapsed;
-    setSystemPromptCollapsed(newState);
-    if (!newState) {
-      setParametersCollapsed(true);
+    if (onSystemPromptToggle) {
+      onSystemPromptToggle();
+    } else {
+      const newState = !systemPromptCollapsedInternal;
+      setSystemPromptCollapsedInternal(newState);
+      if (!newState) {
+        setParametersCollapsedInternal(true);
+      }
     }
   };
 
   const handleParametersToggle = () => {
-    const newState = !parametersCollapsed;
-    setParametersCollapsed(newState);
-    if (!newState) {
-      setSystemPromptCollapsed(true);
+    if (onParametersToggle) {
+      onParametersToggle();
+    } else {
+      const newState = !parametersCollapsedInternal;
+      setParametersCollapsedInternal(newState);
+      if (!newState) {
+        setSystemPromptCollapsedInternal(true);
+      }
     }
   };
 
@@ -61,27 +94,29 @@ export function ParameterPanel({ parameters, onChange, collapsed, onToggleCollap
 
   return (
     <div className="ai-studio-parameter-panel">
-      <div className="ai-studio-bot-name-section">
-        <div className="ai-studio-bot-name-wrapper">
-          {onToggleCollapse && (
-            <button className="ai-studio-panel-toggle" onClick={onToggleCollapse} title="Collapse panel">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          )}
-          {currentBot ? (
-            <input
-              type="text"
-              className="ai-studio-bot-name-input"
-              value={currentBot.name}
-              onChange={(e) => onBotNameChange?.(e.target.value)}
-            />
-          ) : (
-            <span className="ai-studio-bot-name-text">Default Assistant</span>
-          )}
+      {!hideBotName && (
+        <div className="ai-studio-bot-name-section">
+          <div className="ai-studio-bot-name-wrapper">
+            {onToggleCollapse && (
+              <button className="ai-studio-panel-toggle" onClick={onToggleCollapse} title="Collapse panel">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
+            {currentBot ? (
+              <input
+                type="text"
+                className="ai-studio-bot-name-input"
+                value={currentBot.name}
+                onChange={(e) => onBotNameChange?.(e.target.value)}
+              />
+            ) : (
+              <span className="ai-studio-bot-name-text">Default Assistant</span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={`ai-studio-parameters-section ${bothCollapsed ? 'both-collapsed' : ''} ${!parametersCollapsed && systemPromptCollapsed ? 'expanded' : ''}`}>
         <div className="ai-studio-parameters-header">

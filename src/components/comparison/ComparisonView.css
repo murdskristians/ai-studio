@@ -1,0 +1,215 @@
+.ai-studio-comparison-view {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+.ai-studio-comparison-header {
+  height: var(--header-height);
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+
+.ai-studio-comparison-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ai-studio-comparison-header .ai-studio-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.ai-studio-comparison-header .ai-studio-back-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.ai-studio-comparison-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent-blue);
+}
+
+.ai-studio-comparison-title span {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ai-studio-comparison-panels {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 1px;
+  background-color: var(--border-color);
+}
+
+.ai-studio-comparison-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+  min-width: 0;
+}
+
+.ai-studio-comparison-panel-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+}
+
+.ai-studio-bot-selector {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px 16px;
+}
+
+.ai-studio-bot-selector:hover {
+  border-color: var(--border-hover);
+}
+
+.ai-studio-bot-selector:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.ai-studio-comparison-panel-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.ai-studio-comparison-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.ai-studio-comparison-config {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.ai-studio-comparison-config .ai-studio-parameter-panel {
+  width: 100% !important;
+  border-left: none;
+  height: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  scrollbar-gutter: unset;
+}
+
+.ai-studio-comparison-config .ai-studio-parameters-section {
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.ai-studio-comparison-config .ai-studio-parameters-section.expanded {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ai-studio-comparison-config .ai-studio-parameters-section.expanded .ai-studio-panel-content {
+  overflow-y: auto;
+}
+
+.ai-studio-comparison-config .ai-studio-system-prompt-section {
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.ai-studio-comparison-config .ai-studio-system-prompt-section.expanded {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ai-studio-comparison-config .ai-studio-system-prompt-section.expanded .ai-studio-system-prompt-editor {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ai-studio-comparison-config .ai-studio-system-prompt-section.expanded .ai-studio-editor-content {
+  overflow-y: auto;
+}
+
+.ai-studio-comparison-config.has-expanded {
+  flex: 1;
+  min-height: 0;
+}
+
+.ai-studio-comparison-chat-section-wrapper {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+}
+
+.ai-studio-comparison-chat-section-wrapper.expanded {
+  flex: 1;
+  min-height: 0;
+}
+
+.ai-studio-comparison-chat-section-wrapper.expanded .ai-studio-comparison-chat-section {
+  flex: 1;
+  min-height: 0;
+}
+
+.ai-studio-comparison-chat-section-wrapper.expanded .ai-studio-comparison-chat-content {
+  overflow-y: auto;
+}
+
+.ai-studio-comparison-input {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.ai-studio-comparison-input .ai-studio-chat-input-container {
+  background-color: var(--bg-primary);
+  padding: 16px 24px 24px;
+  border-top: 1px solid var(--border-color);
+}
