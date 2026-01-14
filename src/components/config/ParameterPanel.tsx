@@ -1,4 +1,4 @@
-import { Slider, TagInput, Input, Button } from '../ui';
+import { Slider, TagInput, Input, Button, Toggle } from '../ui';
 import type { GenerationParameters, Bot } from '../../types';
 import { DEFAULT_PARAMETERS, PARAMETER_LIMITS } from '../../types/parameters';
 import './ParameterPanel.css';
@@ -84,16 +84,6 @@ export function ParameterPanel({ parameters, onChange, collapsed, onToggleCollap
           description="Nucleus sampling threshold"
         />
 
-        <Slider
-          label="Top K"
-          value={parameters.topK}
-          min={PARAMETER_LIMITS.topK.min}
-          max={PARAMETER_LIMITS.topK.max}
-          step={PARAMETER_LIMITS.topK.step}
-          onChange={(value) => updateParam('topK', value)}
-          description="Number of tokens to consider"
-        />
-
         <Input
           label="Max Output Tokens"
           type="number"
@@ -101,6 +91,13 @@ export function ParameterPanel({ parameters, onChange, collapsed, onToggleCollap
           min={PARAMETER_LIMITS.maxTokens.min}
           max={PARAMETER_LIMITS.maxTokens.max}
           onChange={(e) => updateParam('maxTokens', parseInt(e.target.value) || PARAMETER_LIMITS.maxTokens.min)}
+        />
+
+        <Toggle
+          label="Thinking Mode"
+          checked={parameters.thinkingMode}
+          onChange={(checked) => updateParam('thinkingMode', checked)}
+          description="Enable extended reasoning for complex tasks"
         />
 
         <TagInput

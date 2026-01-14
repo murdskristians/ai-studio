@@ -26,7 +26,6 @@ export class GeminiProvider extends BaseProvider {
       generationConfig: {
         temperature: params.parameters.temperature,
         topP: params.parameters.topP,
-        topK: params.parameters.topK,
         maxOutputTokens: params.parameters.maxTokens,
         stopSequences: params.parameters.stopSequences.length > 0 ? params.parameters.stopSequences : undefined,
       },

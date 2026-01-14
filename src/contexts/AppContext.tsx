@@ -42,6 +42,9 @@ export function AppProvider({ children }: AppProviderProps) {
 
   // Messages
   const [messages, setMessages] = useState<Message[]>([]);
+  const [botMessages, setBotMessages] = useState<Record<string, Message[]>>(
+    () => getItem(STORAGE_KEYS.CONVERSATIONS + '_bot_messages', {})
+  );
 
   // Bots
   const [bots, setBots] = useState<Bot[]>(() => getItem(STORAGE_KEYS.BOTS, []));
@@ -83,6 +86,11 @@ export function AppProvider({ children }: AppProviderProps) {
     setItem(STORAGE_KEYS.CONVERSATIONS, conversations);
   }, [conversations]);
 
+  // Persist bot messages
+  useEffect(() => {
+    setItem(STORAGE_KEYS.CONVERSATIONS + '_bot_messages', botMessages);
+  }, [botMessages]);
+
   const updateSettings = useCallback((updates: Partial<AppSettings>) => {
     setSettings((prev) => ({ ...prev, ...updates }));
   }, []);
@@ -120,16 +128,34 @@ export function AppProvider({ children }: AppProviderProps) {
 
   const setCurrentBot = useCallback(
     (bot: Bot | null) => {
+      const currentBotId = currentBotValue?.id ?? 'default';
+      const newBotId = bot?.id ?? 'default';
+
+      if (currentBotId !== newBotId) {
+        setBotMessages((prev) => ({
+          ...prev,
+          [currentBotId]: messages,
+        }));
+      }
+
       setCurrentBotValue(bot);
+      setCurrentConversation(null);
+
+      const newBotMessages = botMessages[newBotId] ?? [];
+      setMessages(newBotMessages);
+
       if (bot) {
         setSystemPrompt(bot.systemPrompt);
         setParameters(bot.defaultParameters);
         if (bot.preferredModel) {
           setSelectedModel(bot.preferredModel);
         }
+      } else {
+        setSystemPrompt('');
+        setParameters(DEFAULT_PARAMETERS);
       }
     },
-    [setSelectedModel]
+    [setSelectedModel, currentBotValue?.id, messages, botMessages]
   );
 
   const createBot = useCallback(
@@ -186,6 +212,46 @@ export function AppProvider({ children }: AppProviderProps) {
       }
     },
     [currentBotValue?.id]
+  );
+
+  const updateSystemPrompt = useCallback(
+    (prompt: string) => {
+      setSystemPrompt(prompt);
+      if (currentBotValue) {
+        setBots((prev) =>
+          prev.map((bot) =>
+            bot.id === currentBotValue.id
+              ? { ...bot, systemPrompt: prompt, updatedAt: Date.now() }
+              : bot
+          )
+        );
+        setCurrentBotValue((prev) =>
+          prev ? { ...prev, systemPrompt: prompt, updatedAt: Date.now() } : null
+        );
+      }
+    },
+    [currentBotValue]
+  );
+
+  const updateParameters = useCallback(
+    (params: GenerationParameters) => {
+      setParameters(params);
+      if (currentBotValue) {
+        setBots((prev) =>
+          prev.map((bot) =>
+            bot.id === currentBotValue.id
+              ? { ...bot, defaultParameters: params, updatedAt: Date.now() }
+              : bot
+          )
+        );
+        setCurrentBotValue((prev) =>
+          prev
+            ? { ...prev, defaultParameters: params, updatedAt: Date.now() }
+            : null
+        );
+      }
+    },
+    [currentBotValue]
   );
 
   const deleteBot = useCallback(
@@ -299,9 +365,9 @@ export function AppProvider({ children }: AppProviderProps) {
         defaultParameters: {
           temperature: bot.defaultParameters.temperature ?? 1,
           topP: bot.defaultParameters.topP ?? 0.95,
-          topK: bot.defaultParameters.topK ?? 40,
-          maxTokens: bot.defaultParameters.maxTokens ?? 2048,
+          maxTokens: bot.defaultParameters.maxTokens ?? 65535,
           stopSequences: bot.defaultParameters.stopSequences || [],
+          thinkingMode: bot.defaultParameters.thinkingMode ?? false,
         },
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -475,9 +541,9 @@ export function AppProvider({ children }: AppProviderProps) {
       selectedModel: selectedModelValue,
       setSelectedModel,
       parameters,
-      setParameters,
+      setParameters: updateParameters,
       systemPrompt,
-      setSystemPrompt,
+      setSystemPrompt: updateSystemPrompt,
       messages,
       addMessage,
       updateMessage,
@@ -512,7 +578,9 @@ export function AppProvider({ children }: AppProviderProps) {
       selectedModelValue,
       setSelectedModel,
       parameters,
+      updateParameters,
       systemPrompt,
+      updateSystemPrompt,
       messages,
       addMessage,
       updateMessage,
