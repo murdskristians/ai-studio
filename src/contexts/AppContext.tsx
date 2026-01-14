@@ -70,6 +70,11 @@ export function AppProvider({ children }: AppProviderProps) {
   const [parameterPanelCollapsed, setParameterPanelCollapsed] = useState(
     settings.parameterPanelCollapsed
   );
+  const [comparisonMode, setComparisonMode] = useState(false);
+  const [comparingBots, setComparingBots] = useState<[Bot | null, Bot | null]>([
+    null,
+    null,
+  ]);
 
   // Persist settings
   useEffect(() => {
@@ -466,64 +471,131 @@ export function AppProvider({ children }: AppProviderProps) {
   );
 
   const sendMessage = useCallback(
-    async (content: string) => {
-      const providerKey = selectedModelValue.provider;
+    async (
+      content: string,
+      targetBot?: Bot | null,
+      setTargetMessages?: (msgs: Message[]) => void,
+      setTargetStreamingId?: (id: string | null) => void,
+      setIsLoadingTarget?: (loading: boolean) => void
+    ) => {
+      const currentMessages = targetBot
+        ? botMessages[targetBot.id] || []
+        : messages;
+      const currentSystemPrompt = targetBot
+        ? targetBot.systemPrompt
+        : systemPrompt;
+      const currentParameters = targetBot
+        ? targetBot.defaultParameters
+        : parameters;
+      const currentModel = targetBot
+        ? getModelById(targetBot.preferredModel || '') || selectedModelValue
+        : selectedModelValue;
+
+      const providerKey = currentModel.provider;
       const apiKey = settings.apiKeys[providerKey];
       if (!apiKey) {
         alert(
-          `Please configure your ${selectedModelValue.provider} API key in settings.`
+          `Please configure your ${currentModel.provider} API key in settings.`
         );
         return;
       }
 
-      const userMessage = addMessage({ role: 'user', content });
+      const userMessage: Message = {
+        id: uuidv4(),
+        role: 'user',
+        content,
+        timestamp: Date.now(),
+      };
 
-      const assistantMessage = addMessage({
-        role: 'assistant',
-        content: '',
-        model: selectedModelValue.name,
-      });
+      const updatedMessages = [...currentMessages, userMessage];
+
+      if (targetBot) {
+        setBotMessages((prev) => ({
+          ...prev,
+          [targetBot.id]: updatedMessages,
+        }));
+        if (setTargetMessages) setTargetMessages(updatedMessages);
+      } else {
+        setMessages(updatedMessages);
+      }
+
+      const assistantMessageId = uuidv4();
+      setStreamingMessageId(assistantMessageId);
+      if (setTargetStreamingId) setTargetStreamingId(assistantMessageId);
 
       setIsLoading(true);
-      setStreamingMessageId(assistantMessage.id);
+      if (setIsLoadingTarget) setIsLoadingTarget(true);
 
       try {
-        const provider = createProvider(selectedModelValue.provider, apiKey);
+        const provider = createProvider(currentModel.provider, apiKey);
 
-        const messagesForApi = [...messages, userMessage].map((m) => ({
+        const messagesForApi = updatedMessages.map((m) => ({
           role: m.role,
           content: m.content,
         }));
 
         const stream = provider.generateStream({
-          model: selectedModelValue.id,
+          model: currentModel.id,
           messages: messagesForApi,
-          systemPrompt: systemPrompt || undefined,
-          parameters,
+          systemPrompt: currentSystemPrompt || undefined,
+          parameters: currentParameters,
         });
 
         let fullResponse = '';
         for await (const chunk of stream) {
           if (chunk.text) {
             fullResponse += chunk.text;
-            updateMessage(assistantMessage.id, fullResponse);
+            const streamingMessage: Message = {
+              id: assistantMessageId,
+              role: 'assistant',
+              content: fullResponse,
+              timestamp: Date.now(),
+              model: currentModel.name,
+            };
+            if (targetBot) {
+              setBotMessages((prev) => ({
+                ...prev,
+                [targetBot.id]: [...updatedMessages, streamingMessage],
+              }));
+              if (setTargetMessages)
+                setTargetMessages([...updatedMessages, streamingMessage]);
+            } else {
+              setMessages([...updatedMessages, streamingMessage]);
+            }
           }
         }
 
-        setTimeout(() => saveCurrentConversation(), 100);
+        if (!targetBot) {
+          setTimeout(() => saveCurrentConversation(), 100);
+        }
       } catch (error) {
         console.error('Error generating response:', error);
-        updateMessage(
-          assistantMessage.id,
-          `Error: ${
+        const errorMessage: Message = {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: `Error: ${
             error instanceof Error
               ? error.message
               : 'Failed to generate response'
-          }`
-        );
+          }`,
+          timestamp: Date.now(),
+          model: currentModel.name,
+        };
+        if (targetBot) {
+          setBotMessages((prev) => ({
+            ...prev,
+            [targetBot.id]: [...updatedMessages, errorMessage],
+          }));
+          if (setTargetMessages)
+            setTargetMessages([...updatedMessages, errorMessage]);
+        } else {
+          setMessages([...updatedMessages, errorMessage]);
+        }
       } finally {
         setIsLoading(false);
+        if (setIsLoadingTarget) setIsLoadingTarget(false);
         setStreamingMessageId(null);
+        if (setTargetStreamingId) setTargetStreamingId(null);
       }
     },
     [
@@ -532,6 +604,7 @@ export function AppProvider({ children }: AppProviderProps) {
       messages,
       systemPrompt,
       parameters,
+      botMessages,
       addMessage,
       updateMessage,
       saveCurrentConversation,
@@ -576,6 +649,10 @@ export function AppProvider({ children }: AppProviderProps) {
       setSidebarCollapsed,
       parameterPanelCollapsed,
       setParameterPanelCollapsed,
+      comparisonMode,
+      setComparisonMode,
+      comparingBots,
+      setComparingBots,
     }),
     [
       settings,
@@ -612,6 +689,10 @@ export function AppProvider({ children }: AppProviderProps) {
       sendMessage,
       sidebarCollapsed,
       parameterPanelCollapsed,
+      comparisonMode,
+      comparingBots,
+      setComparisonMode,
+      setComparingBots,
     ]
   );
 

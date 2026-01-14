@@ -10,6 +10,7 @@ interface ChatContainerProps {
   onSendMessage: (message: string) => void;
   isLoading?: boolean;
   streamingMessageId?: string | null;
+  hideInput?: boolean;
 }
 
 export function ChatContainer({
@@ -17,6 +18,7 @@ export function ChatContainer({
   onSendMessage,
   isLoading,
   streamingMessageId,
+  hideInput = false,
 }: ChatContainerProps) {
   const { updateMessage, deleteMessage, sendMessage } = useApp();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -114,12 +116,14 @@ export function ChatContainer({
         )}
       </div>
 
+      {!hideInput && (
       <ChatInput
         onSend={onSendMessage}
         disabled={isLoading}
         placeholder={isLoading ? 'Generating response...' : 'Type a message...'}
         messageHistory={messageHistory}
       />
+      )}
     </div>
   );
 }

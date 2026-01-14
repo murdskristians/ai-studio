@@ -33,11 +33,21 @@ export interface AppState {
   deleteConversation: (id: string) => void;
   isLoading: boolean;
   streamingMessageId: string | null;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (
+    content: string,
+    targetBot?: Bot | null,
+    setTargetMessages?: (msgs: Message[]) => void,
+    setTargetStreamingId?: (id: string | null) => void,
+    setIsLoadingTarget?: (loading: boolean) => void
+  ) => Promise<void>;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
   parameterPanelCollapsed: boolean;
   setParameterPanelCollapsed: (collapsed: boolean) => void;
+  comparisonMode: boolean;
+  setComparisonMode: (enabled: boolean) => void;
+  comparingBots: [Bot | null, Bot | null];
+  setComparingBots: (bots: [Bot | null, Bot | null]) => void;
 }
 
 export const AppContext = createContext<AppState | null>(null);
