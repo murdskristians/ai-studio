@@ -131,6 +131,25 @@
   color: var(--text-primary);
 }
 
+/* Drag and drop styles */
+.ai-studio-list-item[draggable="true"] {
+  cursor: grab;
+}
+
+.ai-studio-list-item[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.ai-studio-list-item.dragging {
+  opacity: 0.5;
+  background-color: var(--bg-tertiary);
+}
+
+.ai-studio-list-item.drag-over {
+  border-top: 2px solid var(--accent-blue);
+  margin-top: -2px;
+}
+
 .ai-studio-item-icon {
   flex-shrink: 0;
   width: 24px;

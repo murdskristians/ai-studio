@@ -16,6 +16,7 @@ export function ComparisonView() {
     sendMessage,
     updateBot,
     setComparisonMode,
+    getBotMessages,
   } = useApp();
 
   const [bot1Messages, setBot1Messages] = useState<Message[]>([]);
@@ -38,9 +39,18 @@ export function ComparisonView() {
   const [chat2Collapsed, setChat2Collapsed] = useState(false);
 
   useEffect(() => {
-    setSelectedBot1(comparingBots[0]?.id || 'default');
-    setSelectedBot2(comparingBots[1]?.id || 'default');
-  }, [comparingBots]);
+    const bot1Id = comparingBots[0]?.id || 'default';
+    const bot2Id = comparingBots[1]?.id || 'default';
+    setSelectedBot1(bot1Id);
+    setSelectedBot2(bot2Id);
+    // Load existing messages for the bots
+    if (comparingBots[0]) {
+      setBot1Messages(getBotMessages(comparingBots[0].id));
+    }
+    if (comparingBots[1]) {
+      setBot2Messages(getBotMessages(comparingBots[1].id));
+    }
+  }, [comparingBots, getBotMessages]);
 
   const getBotParams = (bot: Bot | null) => {
     return bot?.defaultParameters || DEFAULT_PARAMETERS;
@@ -149,10 +159,14 @@ export function ComparisonView() {
 
     if (index === 0) {
       setSelectedBot1(botId);
-      setBot1Messages([]);
+      // Load existing messages for this bot
+      const existingMessages = botId !== 'default' && botId !== '' ? getBotMessages(botId) : [];
+      setBot1Messages(existingMessages);
     } else {
       setSelectedBot2(botId);
-      setBot2Messages([]);
+      // Load existing messages for this bot
+      const existingMessages = botId !== 'default' && botId !== '' ? getBotMessages(botId) : [];
+      setBot2Messages(existingMessages);
     }
   };
 

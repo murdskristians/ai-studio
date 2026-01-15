@@ -23,6 +23,7 @@ export interface AppState {
   createBot: (bot?: Partial<Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>>) => Bot;
   updateBot: (id: string, updates: Partial<Bot>) => void;
   deleteBot: (id: string) => void;
+  reorderBots: (fromIndex: number, toIndex: number) => void;
   exportBot: (id: string) => void;
   exportDefaultAssistant: () => void;
   exportAllBots: () => void;
@@ -50,6 +51,7 @@ export interface AppState {
   setComparisonMode: (enabled: boolean) => void;
   comparingBots: [Bot | null, Bot | null];
   setComparingBots: (bots: [Bot | null, Bot | null]) => void;
+  getBotMessages: (botId: string) => Message[];
 }
 
 export const AppContext = createContext<AppState | null>(null);
