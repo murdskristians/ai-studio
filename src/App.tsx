@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
 import { AppProvider, useApp } from './contexts';
-import { MainLayout, Header, HeaderHandle, Sidebar, SettingsModal } from './components/layout';
+import { MainLayout, Header, Sidebar, SettingsModal } from './components/layout';
 import { ChatContainer } from './components/chat';
-import { ParameterPanel } from './components/config';
+import { ParameterPanel, ParameterPanelHandle } from './components/config';
 import { BotEditorModal } from './components/bots';
 import { ComparisonView } from './components/comparison';
 import { Modal, Button } from './components/ui';
@@ -29,13 +29,15 @@ function AppContent() {
     updateBot,
     deleteBot,
     comparisonMode,
+    selectedModel,
+    setSelectedModel,
   } = useApp();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [botEditorOpen, setBotEditorOpen] = useState(false);
   const [editingBot, setEditingBot] = useState<Bot | null>(null);
   const [apiKeyErrorProvider, setApiKeyErrorProvider] = useState<string | null>(null);
-  const headerRef = useRef<HeaderHandle>(null);
+  const parameterPanelRef = useRef<ParameterPanelHandle>(null);
 
   const handleCreateBot = () => {
     // Create bot directly with default values (no popup)
@@ -65,11 +67,15 @@ function AppContent() {
     setSettingsOpen(true);
   };
 
-  const handleSelectModel = () => {
+  const handleSelectAIModel = () => {
     setApiKeyErrorProvider(null);
-    // Small delay to ensure modal is closed before focusing
+    // Expand parameter panel if collapsed
+    if (parameterPanelCollapsed) {
+      setParameterPanelCollapsed(false);
+    }
+    // Focus the model selector
     setTimeout(() => {
-      headerRef.current?.focusModelSelector();
+      parameterPanelRef.current?.focusModelSelector();
     }, 100);
   };
 
@@ -79,7 +85,7 @@ function AppContent() {
         <ComparisonView />
       ) : (
         <MainLayout
-          header={<Header ref={headerRef} onOpenSettings={() => setSettingsOpen(true)} />}
+          header={<Header onOpenSettings={() => setSettingsOpen(true)} />}
           sidebar={
             <Sidebar
               onCreateBot={handleCreateBot}
@@ -98,16 +104,20 @@ function AppContent() {
           }
           panel={
             <ParameterPanel
+              ref={parameterPanelRef}
               parameters={parameters}
               onChange={setParameters}
               collapsed={parameterPanelCollapsed}
               onToggleCollapse={() => setParameterPanelCollapsed(!parameterPanelCollapsed)}
               currentBot={currentBot}
               onBotNameChange={(name) => currentBot && updateBot(currentBot.id, { name })}
+              onDescriptionChange={(description) => currentBot && updateBot(currentBot.id, { description })}
               systemPrompt={systemPrompt}
               onSystemPromptChange={setSystemPrompt}
               trainingExamples={trainingExamples}
               onTrainingExamplesChange={setTrainingExamples}
+              selectedModel={selectedModel.id}
+              onModelChange={setSelectedModel}
             />
           }
         />
@@ -132,14 +142,14 @@ function AppContent() {
         title="API Key Required"
         size="sm"
         footer={
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between' }}>
-            <Button variant="ghost" onClick={handleSelectModel}>
+          <>
+            <Button variant="secondary" onClick={handleSelectAIModel}>
               Select AI Model
             </Button>
             <Button onClick={handleGoToApiKeys}>
               Go to API Keys
             </Button>
-          </div>
+          </>
         }
       >
         <p style={{ margin: 0, color: 'var(--text-secondary)' }}>

@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Slider, TagInput, Input, Button, Toggle } from '../ui';
+import { useState, forwardRef, useImperativeHandle, useRef } from 'react';
+import { Slider, TagInput, Input, Button, Toggle, Modal } from '../ui';
+import { ModelSelector, ModelSelectorHandle } from '../model';
 import { SystemPromptEditor } from './SystemPromptEditor';
 import { TrainingExamplesEditor } from './TrainingExamplesEditor';
 import type { GenerationParameters, Bot, TrainingExample } from '../../types';
@@ -13,11 +14,15 @@ interface ParameterPanelProps {
   onToggleCollapse?: () => void;
   currentBot?: Bot | null;
   onBotNameChange?: (name: string) => void;
+  onDescriptionChange?: (description: string) => void;
   systemPrompt?: string;
   onSystemPromptChange?: (value: string) => void;
   trainingExamples?: TrainingExample[];
   onTrainingExamplesChange?: (examples: TrainingExample[]) => void;
   hideBotName?: boolean;
+  // Model selection
+  selectedModel?: string;
+  onModelChange?: (modelId: string) => void;
   // External control for comparison mode
   parametersCollapsedProp?: boolean;
   onParametersToggle?: () => void;
@@ -27,28 +32,53 @@ interface ParameterPanelProps {
   onExamplesToggle?: () => void;
 }
 
-export function ParameterPanel({
+export interface ParameterPanelHandle {
+  focusModelSelector: () => void;
+}
+
+export const ParameterPanel = forwardRef<ParameterPanelHandle, ParameterPanelProps>(function ParameterPanel({
   parameters,
   onChange,
   collapsed,
   onToggleCollapse,
   currentBot,
   onBotNameChange,
+  onDescriptionChange,
   systemPrompt,
   onSystemPromptChange,
   trainingExamples,
   onTrainingExamplesChange,
   hideBotName,
+  selectedModel,
+  onModelChange,
   parametersCollapsedProp,
   onParametersToggle,
   systemPromptCollapsedProp,
   onSystemPromptToggle,
   examplesCollapsedProp,
   onExamplesToggle,
-}: ParameterPanelProps) {
+}, ref) {
   const [systemPromptCollapsedInternal, setSystemPromptCollapsedInternal] = useState(true);
   const [parametersCollapsedInternal, setParametersCollapsedInternal] = useState(false);
+  const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
+  const [editingDescription, setEditingDescription] = useState('');
   const [examplesCollapsedInternal, setExamplesCollapsedInternal] = useState(true);
+  const modelSelectorRef = useRef<ModelSelectorHandle>(null);
+
+  useImperativeHandle(ref, () => ({
+    focusModelSelector: () => {
+      // Expand parameters section if collapsed
+      if (parametersCollapsedInternal && !isExternallyControlled) {
+        setParametersCollapsedInternal(false);
+        setSystemPromptCollapsedInternal(true);
+        setExamplesCollapsedInternal(true);
+      }
+      // Focus the model selector after a short delay to allow expansion
+      setTimeout(() => {
+        modelSelectorRef.current?.focus();
+      }, 50);
+    },
+  }));
 
   // Use external props if provided, otherwise use internal state
   const isExternallyControlled = parametersCollapsedProp !== undefined;
@@ -148,9 +178,32 @@ export function ParameterPanel({
         <div className="ai-studio-parameters-header">
           <h3 className="ai-studio-parameters-title" onClick={handleParametersToggle}>Parameters</h3>
           <div className="ai-studio-parameters-header-actions">
-            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); resetToDefaults(); }}>
-              Reset
-            </Button>
+            {currentBot && onDescriptionChange && (
+              <button
+                className="ai-studio-parameters-icon-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingDescription(currentBot.description || '');
+                  setDescriptionModalOpen(true);
+                }}
+                title="Edit description"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 1.5H2.5C1.94772 1.5 1.5 1.94772 1.5 2.5V13.5C1.5 14.0523 1.94772 14.5 2.5 14.5H13.5C14.0523 14.5 14.5 14.0523 14.5 13.5V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M4 9L4 12H7L14 5L11 2L4 9Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
+            <button
+              className="ai-studio-parameters-icon-btn"
+              onClick={(e) => { e.stopPropagation(); resetToDefaults(); }}
+              title="Reset to defaults"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M2 2V6H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M2.5 9.5C3.1 12.5 5.8 14.5 9 14C12.2 13.5 14.5 10.5 14 7.3C13.5 4.1 10.8 1.8 7.5 2C5.3 2.2 3.4 3.5 2.4 5.5L2 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
             <button className="ai-studio-parameters-toggle" onClick={handleParametersToggle} aria-label={parametersCollapsed ? 'Expand' : 'Collapse'}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path
@@ -166,6 +219,17 @@ export function ParameterPanel({
         </div>
         {!parametersCollapsed && (
           <div className="ai-studio-panel-content">
+            {selectedModel && onModelChange && (
+              <div className="ai-studio-param-group">
+                <label className="ai-studio-param-label">AI Model</label>
+                <ModelSelector
+                  ref={modelSelectorRef}
+                  value={selectedModel}
+                  onChange={onModelChange}
+                />
+              </div>
+            )}
+
             <Slider
               label="Temperature"
               value={parameters.temperature}
@@ -234,6 +298,42 @@ export function ParameterPanel({
           />
         </div>
       )}
+
+      <Modal
+        isOpen={descriptionModalOpen}
+        onClose={() => setDescriptionModalOpen(false)}
+        title="Bot Description"
+        size="md"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              className="cancel-btn"
+              onClick={() => setDescriptionModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                onDescriptionChange?.(editingDescription);
+                setDescriptionModalOpen(false);
+              }}
+            >
+              Save
+            </Button>
+          </>
+        }
+      >
+        <div className="ai-studio-description-editor">
+          <textarea
+            className="ai-studio-description-textarea"
+            value={editingDescription}
+            onChange={(e) => setEditingDescription(e.target.value)}
+            placeholder="Enter a description for this bot..."
+            rows={6}
+          />
+        </div>
+      </Modal>
     </div>
   );
-}
+});

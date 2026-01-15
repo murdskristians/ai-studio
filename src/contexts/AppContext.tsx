@@ -127,11 +127,17 @@ export function AppProvider({ children }: AppProviderProps) {
   const [parameterPanelCollapsed, setParameterPanelCollapsed] = useState(
     settings.parameterPanelCollapsed
   );
-  const [comparisonMode, setComparisonMode] = useState(false);
-  const [comparingBots, setComparingBots] = useState<[Bot | null, Bot | null]>([
-    null,
-    null,
-  ]);
+  const [comparisonMode, setComparisonMode] = useState(() =>
+    getItem(STORAGE_KEYS.COMPARISON_MODE, false)
+  );
+  const [comparingBots, setComparingBots] = useState<[Bot | null, Bot | null]>(() => {
+    const savedBotIds = getItem<[string | null, string | null]>(STORAGE_KEYS.COMPARING_BOTS, [null, null]);
+    const savedBots = getItem<Bot[]>(STORAGE_KEYS.BOTS, []);
+    return [
+      savedBotIds[0] ? savedBots.find(b => b.id === savedBotIds[0]) || null : null,
+      savedBotIds[1] ? savedBots.find(b => b.id === savedBotIds[1]) || null : null,
+    ];
+  });
 
   // Persist settings
   useEffect(() => {
@@ -158,6 +164,20 @@ export function AppProvider({ children }: AppProviderProps) {
     setItem(STORAGE_KEYS.CURRENT_BOT, currentBotValue?.id || null);
   }, [currentBotValue]);
 
+  // Persist comparison mode state
+  useEffect(() => {
+    setItem(STORAGE_KEYS.COMPARISON_MODE, comparisonMode);
+  }, [comparisonMode]);
+
+  // Persist comparing bots (store IDs only)
+  useEffect(() => {
+    const botIds: [string | null, string | null] = [
+      comparingBots[0]?.id || null,
+      comparingBots[1]?.id || null,
+    ];
+    setItem(STORAGE_KEYS.COMPARING_BOTS, botIds);
+  }, [comparingBots]);
+
   const updateSettings = useCallback((updates: Partial<AppSettings>) => {
     setSettings((prev) => ({ ...prev, ...updates }));
   }, []);
@@ -166,8 +186,24 @@ export function AppProvider({ children }: AppProviderProps) {
     const model = getModelById(modelId);
     if (model) {
       setSelectedModelValue(model);
+      // Update the current bot's preferredModel if a bot is selected
+      if (currentBotValue) {
+        setBots((prev) =>
+          prev.map((bot) =>
+            bot.id === currentBotValue.id
+              ? { ...bot, preferredModel: modelId, updatedAt: Date.now() }
+              : bot
+          )
+        );
+        setCurrentBotValue((prev) =>
+          prev ? { ...prev, preferredModel: modelId, updatedAt: Date.now() } : null
+        );
+      } else {
+        // Save as default model in settings when using Default Assistant
+        setSettings((prev) => ({ ...prev, defaultModel: modelId }));
+      }
     }
-  }, []);
+  }, [currentBotValue]);
 
   const addMessage = useCallback(
     (message: Omit<Message, 'id' | 'timestamp'>): Message => {
@@ -726,6 +762,21 @@ export function AppProvider({ children }: AppProviderProps) {
     ]
   );
 
+  // Wrapped setComparisonMode that sets current bot as first comparing bot when entering
+  const handleSetComparisonMode = useCallback(
+    (enabled: boolean) => {
+      setComparisonMode(enabled);
+      if (enabled) {
+        // When entering comparison mode, set the current bot as the first bot
+        setComparingBots([currentBotValue, null]);
+      } else {
+        // When exiting, clear the comparing bots
+        setComparingBots([null, null]);
+      }
+    },
+    [currentBotValue]
+  );
+
   const value: AppState = useMemo(
     () => ({
       settings,
@@ -768,7 +819,7 @@ export function AppProvider({ children }: AppProviderProps) {
       parameterPanelCollapsed,
       setParameterPanelCollapsed,
       comparisonMode,
-      setComparisonMode,
+      setComparisonMode: handleSetComparisonMode,
       comparingBots,
       setComparingBots,
       getBotMessages,
@@ -813,7 +864,7 @@ export function AppProvider({ children }: AppProviderProps) {
       parameterPanelCollapsed,
       comparisonMode,
       comparingBots,
-      setComparisonMode,
+      handleSetComparisonMode,
       setComparingBots,
       getBotMessages,
     ]

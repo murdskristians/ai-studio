@@ -52,4 +52,6 @@ export const STORAGE_KEYS = {
   CONVERSATIONS: 'conversations',
   CURRENT_BOT: 'current-bot',
   CURRENT_CONVERSATION: 'current-conversation',
+  COMPARISON_MODE: 'comparison-mode',
+  COMPARING_BOTS: 'comparing-bots',
 } as const;

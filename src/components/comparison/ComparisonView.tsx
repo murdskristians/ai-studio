@@ -4,6 +4,7 @@ import { ParameterPanel } from '../config';
 import { ChatInput } from '../chat/ChatInput';
 import { ComparisonChatSection } from './ComparisonChatSection';
 import { DEFAULT_PARAMETERS } from '../../types/parameters';
+import { MODELS } from '../../constants/models';
 import type { Bot, Message, GenerationParameters, TrainingExample } from '../../types';
 import './ComparisonView.css';
 
@@ -17,6 +18,7 @@ export function ComparisonView() {
     updateBot,
     setComparisonMode,
     getBotMessages,
+    settings,
   } = useApp();
 
   const [bot1Messages, setBot1Messages] = useState<Message[]>([]);
@@ -62,6 +64,20 @@ export function ComparisonView() {
 
   const getBotExamples = (bot: Bot | null): TrainingExample[] => {
     return bot?.trainingExamples || [];
+  };
+
+  const getBotModel = (bot: Bot | null): string => {
+    return bot?.preferredModel || settings.defaultModel || MODELS[0].id;
+  };
+
+  const handleModelChange = (index: 0 | 1, modelId: string) => {
+    const bot = comparingBots[index];
+    if (bot) {
+      updateBot(bot.id, { preferredModel: modelId });
+      const updatedBots: [Bot | null, Bot | null] = [...comparingBots];
+      updatedBots[index] = { ...bot, preferredModel: modelId };
+      setComparingBots(updatedBots);
+    }
   };
 
   const handleParametersToggle = (index: 0 | 1) => {
@@ -200,13 +216,23 @@ export function ComparisonView() {
     }
   };
 
+  const handleDescriptionChange = (index: 0 | 1, description: string) => {
+    const bot = comparingBots[index];
+    if (bot) {
+      updateBot(bot.id, { description });
+      const updatedBots: [Bot | null, Bot | null] = [...comparingBots];
+      updatedBots[index] = { ...bot, description };
+      setComparingBots(updatedBots);
+    }
+  };
+
   const handleSendMessage = async (content: string) => {
     if (!comparingBots[0] && !comparingBots[1]) return;
 
     const sendToBot = async (
       bot: Bot | null,
-      index: 0 | 1,
-      messages: Message[],
+      _index: 0 | 1,
+      _messages: Message[],
       setMessages: (msgs: Message[]) => void,
       setIsLoading: (loading: boolean) => void,
       setStreamingId: (id: string | null) => void
@@ -288,11 +314,14 @@ export function ComparisonView() {
                     examplesCollapsedProp={examples1Collapsed}
                     onExamplesToggle={() => handleExamplesToggle(0)}
                     currentBot={comparingBots[0]}
+                    onDescriptionChange={(description) => handleDescriptionChange(0, description)}
                     systemPrompt={getBotSystemPrompt(comparingBots[0])}
                     onSystemPromptChange={(prompt) => handleSystemPromptChange(0, prompt)}
                     trainingExamples={getBotExamples(comparingBots[0])}
                     onTrainingExamplesChange={(examples) => handleExamplesChange(0, examples)}
                     hideBotName={true}
+                    selectedModel={getBotModel(comparingBots[0])}
+                    onModelChange={(modelId) => handleModelChange(0, modelId)}
                   />
                 </div>
                 <div className={`ai-studio-comparison-chat-section-wrapper ${!chat1Collapsed ? 'expanded' : ''}`}>
@@ -346,11 +375,14 @@ export function ComparisonView() {
                     examplesCollapsedProp={examples2Collapsed}
                     onExamplesToggle={() => handleExamplesToggle(1)}
                     currentBot={comparingBots[1]}
+                    onDescriptionChange={(description) => handleDescriptionChange(1, description)}
                     systemPrompt={getBotSystemPrompt(comparingBots[1])}
                     onSystemPromptChange={(prompt) => handleSystemPromptChange(1, prompt)}
                     trainingExamples={getBotExamples(comparingBots[1])}
                     onTrainingExamplesChange={(examples) => handleExamplesChange(1, examples)}
                     hideBotName={true}
+                    selectedModel={getBotModel(comparingBots[1])}
+                    onModelChange={(modelId) => handleModelChange(1, modelId)}
                   />
                 </div>
                 <div className={`ai-studio-comparison-chat-section-wrapper ${!chat2Collapsed ? 'expanded' : ''}`}>
