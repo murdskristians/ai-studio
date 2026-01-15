@@ -80,6 +80,24 @@
   min-height: 56px;
 }
 
+.ai-studio-examples-section {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border-color);
+  min-height: 56px;
+}
+
+.ai-studio-examples-section.both-collapsed {
+  flex: 0 0 auto;
+  min-height: 56px;
+}
+
+.ai-studio-examples-section.expanded {
+  flex: 1;
+  min-height: 56px;
+}
+
 .ai-studio-parameters-section.both-collapsed + .ai-studio-system-prompt-section.both-collapsed {
   margin-top: 0;
 }
@@ -197,6 +215,61 @@
   background-color: var(--bg-hover);
 }
 
+.ai-studio-parameters-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.ai-studio-parameters-icon-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.ai-studio-description-editor {
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-studio-description-textarea {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.ai-studio-description-textarea:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.ai-studio-description-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.ai-studio-btn.cancel-btn {
+  color: #e07850;
+}
+
+.ai-studio-btn.cancel-btn:hover {
+  color: #ff6b35;
+  background-color: rgba(224, 120, 80, 0.1);
+}
+
 .ai-studio-panel-content {
   flex: 1;
   overflow: hidden;
@@ -209,6 +282,26 @@
   scrollbar-gutter: stable;
   background-color: var(--bg-secondary);
   animation: expandContentHeight 0.3s ease-out forwards, expandContent 0.3s ease-out, enableScroll 0s linear 0.3s forwards;
+}
+
+.ai-studio-param-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-studio-param-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ai-studio-param-group .ai-studio-model-selector {
+  width: 100%;
+}
+
+.ai-studio-param-group .ai-studio-select-wrapper {
+  width: 100%;
 }
 
 @keyframes expandContentHeight {

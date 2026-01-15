@@ -68,6 +68,15 @@
   background-color: var(--accent-blue-hover);
 }
 
+.ai-studio-header-right .ai-studio-btn.clear-conversation {
+  color: #e07850;
+}
+
+.ai-studio-header-right .ai-studio-btn.clear-conversation:hover {
+  color: #ff6b35;
+  background-color: rgba(224, 120, 80, 0.1);
+}
+
 @media (max-width: 768px) {
   .ai-studio-header {
     padding: 0 12px;

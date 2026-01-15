@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, useLayoutEffect } from 'react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { useApp } from '../../contexts';
@@ -7,10 +7,11 @@ import './ChatContainer.css';
 
 interface ChatContainerProps {
   messages: Message[];
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string) => void | Promise<{ success: boolean; error?: string; provider?: string } | void>;
   isLoading?: boolean;
   streamingMessageId?: string | null;
   hideInput?: boolean;
+  onApiKeyError?: (provider: string) => void;
 }
 
 export function ChatContainer({
@@ -19,16 +20,31 @@ export function ChatContainer({
   isLoading,
   streamingMessageId,
   hideInput = false,
+  onApiKeyError,
 }: ChatContainerProps) {
   const { updateMessage, deleteMessage, sendMessage } = useApp();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isInitialMount = useRef(true);
+  const prevMessageCount = useRef(messages.length);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // Instant scroll on initial mount (before paint) to avoid visible scrolling
+  useLayoutEffect(() => {
+    if (isInitialMount.current && messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+      isInitialMount.current = false;
+    }
+  }, [messages.length]);
 
+  // Smooth scroll for new messages after initial load
   useEffect(() => {
-    scrollToBottom();
+    // Skip if this is the initial mount
+    if (isInitialMount.current) return;
+
+    // Only smooth scroll when messages are added
+    if (messages.length > prevMessageCount.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    prevMessageCount.current = messages.length;
   }, [messages]);
 
   const hasMessages = messages.length > 0;
@@ -122,6 +138,7 @@ export function ChatContainer({
         disabled={isLoading}
         placeholder={isLoading ? 'Generating response...' : 'Type a message...'}
         messageHistory={messageHistory}
+        onApiKeyError={onApiKeyError}
       />
       )}
     </div>

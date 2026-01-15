@@ -1,4 +1,4 @@
-import { SelectHTMLAttributes } from 'react';
+import { SelectHTMLAttributes, forwardRef, useImperativeHandle, useRef } from 'react';
 import './Select.css';
 
 interface SelectOption {
@@ -14,8 +14,30 @@ interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onC
   onChange: (value: string) => void;
 }
 
-export function Select({ label, options, value, onChange, className = '', id, ...props }: SelectProps) {
+export interface SelectHandle {
+  focus: () => void;
+}
+
+export const Select = forwardRef<SelectHandle, SelectProps>(function Select({ label, options, value, onChange, className = '', id, ...props }, ref) {
   const selectId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  const selectElementRef = useRef<HTMLSelectElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      const select = selectElementRef.current;
+      if (select) {
+        select.focus();
+        // Use showPicker() if available (modern browsers)
+        if ('showPicker' in select && typeof select.showPicker === 'function') {
+          try {
+            select.showPicker();
+          } catch {
+            // showPicker may fail in some contexts, fall back to focus only
+          }
+        }
+      }
+    },
+  }));
 
   // Group options by their group property
   const groupedOptions = options.reduce((acc, option) => {
@@ -32,6 +54,7 @@ export function Select({ label, options, value, onChange, className = '', id, ..
       {label && <label htmlFor={selectId} className="ai-studio-select-label">{label}</label>}
       <div className="ai-studio-select-container">
         <select
+          ref={selectElementRef}
           id={selectId}
           className="ai-studio-select"
           value={value}
@@ -64,4 +87,4 @@ export function Select({ label, options, value, onChange, className = '', id, ..
       </div>
     </div>
   );
-}
+});

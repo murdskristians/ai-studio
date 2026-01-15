@@ -7,6 +7,7 @@ import type {
   GenerationParameters,
   ModelConfig,
   AppSettings,
+  TrainingExample,
 } from '../types';
 import { DEFAULT_PARAMETERS } from '../types/parameters';
 import { DEFAULT_SETTINGS } from '../types/settings';
@@ -14,6 +15,16 @@ import { getItem, setItem, STORAGE_KEYS } from '../services/storage';
 import { createProvider } from '../services/providers';
 import { MODELS, getModelById } from '../constants/models';
 import { AppContext, type AppState } from './AppContextDef';
+
+// Helper function to format training examples for the API
+function formatTrainingExamples(examples: TrainingExample[]): string {
+  const enabledExamples = examples.filter(ex => ex.enabled);
+  if (enabledExamples.length === 0) return '';
+
+  return enabledExamples
+    .map(ex => `input: ${ex.input}\noutput: ${ex.output}`)
+    .join('\n\n');
+}
 
 interface AppProviderProps {
   readonly children: ReactNode;
@@ -25,30 +36,76 @@ export function AppProvider({ children }: AppProviderProps) {
     getItem(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
   );
 
-  // Model selection
+  // Model selection - check for saved bot's preferred model first
   const [selectedModelValue, setSelectedModelValue] = useState<ModelConfig>(
     () => {
+      // Check if there's a saved bot with a preferred model
+      const savedBotId = getItem<string | null>(STORAGE_KEYS.CURRENT_BOT, null);
+      if (savedBotId) {
+        const savedBots = getItem<Bot[]>(STORAGE_KEYS.BOTS, []);
+        const savedBot = savedBots.find(b => b.id === savedBotId);
+        if (savedBot?.preferredModel) {
+          const botModel = getModelById(savedBot.preferredModel);
+          if (botModel) return botModel;
+        }
+      }
+      // Fall back to default model from settings
       const saved = settings.defaultModel;
       return getModelById(saved) || MODELS[0];
     }
   );
 
-  // Parameters
-  const [parameters, setParameters] =
-    useState<GenerationParameters>(DEFAULT_PARAMETERS);
+  // Bots - initialize first so we can use saved bot for other state
+  const [bots, setBots] = useState<Bot[]>(() => getItem(STORAGE_KEYS.BOTS, []));
+  const [currentBotValue, setCurrentBotValue] = useState<Bot | null>(() => {
+    const savedBotId = getItem<string | null>(STORAGE_KEYS.CURRENT_BOT, null);
+    if (savedBotId) {
+      const savedBots = getItem<Bot[]>(STORAGE_KEYS.BOTS, []);
+      return savedBots.find(b => b.id === savedBotId) || null;
+    }
+    return null;
+  });
 
-  // System prompt
-  const [systemPrompt, setSystemPrompt] = useState('');
+  // Get initial bot for state initialization
+  const getInitialBot = (): Bot | null => {
+    const savedBotId = getItem<string | null>(STORAGE_KEYS.CURRENT_BOT, null);
+    if (savedBotId) {
+      const savedBots = getItem<Bot[]>(STORAGE_KEYS.BOTS, []);
+      return savedBots.find(b => b.id === savedBotId) || null;
+    }
+    return null;
+  };
 
-  // Messages
-  const [messages, setMessages] = useState<Message[]>([]);
+  // Parameters - initialize from saved bot if available
+  const [parameters, setParameters] = useState<GenerationParameters>(() => {
+    const initialBot = getInitialBot();
+    return initialBot?.defaultParameters || DEFAULT_PARAMETERS;
+  });
+
+  // System prompt - initialize from saved bot if available
+  const [systemPrompt, setSystemPrompt] = useState(() => {
+    const initialBot = getInitialBot();
+    return initialBot?.systemPrompt || '';
+  });
+
+  // Training examples - initialize from saved bot if available
+  const [trainingExamples, setTrainingExamplesState] = useState<TrainingExample[]>(() => {
+    const initialBot = getInitialBot();
+    return initialBot?.trainingExamples || [];
+  });
+
+  // Messages - initialize from saved bot messages if available
   const [botMessages, setBotMessages] = useState<Record<string, Message[]>>(
     () => getItem(STORAGE_KEYS.CONVERSATIONS + '_bot_messages', {})
   );
-
-  // Bots
-  const [bots, setBots] = useState<Bot[]>(() => getItem(STORAGE_KEYS.BOTS, []));
-  const [currentBotValue, setCurrentBotValue] = useState<Bot | null>(null);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const savedBotId = getItem<string | null>(STORAGE_KEYS.CURRENT_BOT, null);
+    if (savedBotId) {
+      const savedBotMessages = getItem<Record<string, Message[]>>(STORAGE_KEYS.CONVERSATIONS + '_bot_messages', {});
+      return savedBotMessages[savedBotId] || [];
+    }
+    return [];
+  });
 
   // Conversations
   const [conversations, setConversations] = useState<Conversation[]>(() =>
@@ -70,11 +127,17 @@ export function AppProvider({ children }: AppProviderProps) {
   const [parameterPanelCollapsed, setParameterPanelCollapsed] = useState(
     settings.parameterPanelCollapsed
   );
-  const [comparisonMode, setComparisonMode] = useState(false);
-  const [comparingBots, setComparingBots] = useState<[Bot | null, Bot | null]>([
-    null,
-    null,
-  ]);
+  const [comparisonMode, setComparisonMode] = useState(() =>
+    getItem(STORAGE_KEYS.COMPARISON_MODE, false)
+  );
+  const [comparingBots, setComparingBots] = useState<[Bot | null, Bot | null]>(() => {
+    const savedBotIds = getItem<[string | null, string | null]>(STORAGE_KEYS.COMPARING_BOTS, [null, null]);
+    const savedBots = getItem<Bot[]>(STORAGE_KEYS.BOTS, []);
+    return [
+      savedBotIds[0] ? savedBots.find(b => b.id === savedBotIds[0]) || null : null,
+      savedBotIds[1] ? savedBots.find(b => b.id === savedBotIds[1]) || null : null,
+    ];
+  });
 
   // Persist settings
   useEffect(() => {
@@ -96,6 +159,25 @@ export function AppProvider({ children }: AppProviderProps) {
     setItem(STORAGE_KEYS.CONVERSATIONS + '_bot_messages', botMessages);
   }, [botMessages]);
 
+  // Persist current bot selection
+  useEffect(() => {
+    setItem(STORAGE_KEYS.CURRENT_BOT, currentBotValue?.id || null);
+  }, [currentBotValue]);
+
+  // Persist comparison mode state
+  useEffect(() => {
+    setItem(STORAGE_KEYS.COMPARISON_MODE, comparisonMode);
+  }, [comparisonMode]);
+
+  // Persist comparing bots (store IDs only)
+  useEffect(() => {
+    const botIds: [string | null, string | null] = [
+      comparingBots[0]?.id || null,
+      comparingBots[1]?.id || null,
+    ];
+    setItem(STORAGE_KEYS.COMPARING_BOTS, botIds);
+  }, [comparingBots]);
+
   const updateSettings = useCallback((updates: Partial<AppSettings>) => {
     setSettings((prev) => ({ ...prev, ...updates }));
   }, []);
@@ -104,8 +186,24 @@ export function AppProvider({ children }: AppProviderProps) {
     const model = getModelById(modelId);
     if (model) {
       setSelectedModelValue(model);
+      // Update the current bot's preferredModel if a bot is selected
+      if (currentBotValue) {
+        setBots((prev) =>
+          prev.map((bot) =>
+            bot.id === currentBotValue.id
+              ? { ...bot, preferredModel: modelId, updatedAt: Date.now() }
+              : bot
+          )
+        );
+        setCurrentBotValue((prev) =>
+          prev ? { ...prev, preferredModel: modelId, updatedAt: Date.now() } : null
+        );
+      } else {
+        // Save as default model in settings when using Default Assistant
+        setSettings((prev) => ({ ...prev, defaultModel: modelId }));
+      }
     }
-  }, []);
+  }, [currentBotValue]);
 
   const addMessage = useCallback(
     (message: Omit<Message, 'id' | 'timestamp'>): Message => {
@@ -156,12 +254,14 @@ export function AppProvider({ children }: AppProviderProps) {
       if (bot) {
         setSystemPrompt(bot.systemPrompt);
         setParameters(bot.defaultParameters);
+        setTrainingExamplesState(bot.trainingExamples || []);
         if (bot.preferredModel) {
           setSelectedModel(bot.preferredModel);
         }
       } else {
         setSystemPrompt('');
         setParameters(DEFAULT_PARAMETERS);
+        setTrainingExamplesState([]);
       }
     },
     [setSelectedModel, currentBotValue?.id, messages, botMessages]
@@ -194,6 +294,7 @@ export function AppProvider({ children }: AppProviderProps) {
           defaultParameters: botData?.defaultParameters ?? {
             ...DEFAULT_PARAMETERS,
           },
+          trainingExamples: botData?.trainingExamples ?? [],
           id: uuidv4(),
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -242,6 +343,25 @@ export function AppProvider({ children }: AppProviderProps) {
     [currentBotValue]
   );
 
+  const updateTrainingExamples = useCallback(
+    (examples: TrainingExample[]) => {
+      setTrainingExamplesState(examples);
+      if (currentBotValue) {
+        setBots((prev) =>
+          prev.map((bot) =>
+            bot.id === currentBotValue.id
+              ? { ...bot, trainingExamples: examples, updatedAt: Date.now() }
+              : bot
+          )
+        );
+        setCurrentBotValue((prev) =>
+          prev ? { ...prev, trainingExamples: examples, updatedAt: Date.now() } : null
+        );
+      }
+    },
+    [currentBotValue]
+  );
+
   const updateParameters = useCallback(
     (params: GenerationParameters) => {
       setParameters(params);
@@ -272,6 +392,15 @@ export function AppProvider({ children }: AppProviderProps) {
     },
     [currentBotValue]
   );
+
+  const reorderBots = useCallback((fromIndex: number, toIndex: number) => {
+    setBots((prev) => {
+      const newBots = [...prev];
+      const [removed] = newBots.splice(fromIndex, 1);
+      newBots.splice(toIndex, 0, removed);
+      return newBots;
+    });
+  }, []);
 
   const exportBot = useCallback(
     (id: string) => {
@@ -378,6 +507,7 @@ export function AppProvider({ children }: AppProviderProps) {
           stopSequences: bot.defaultParameters.stopSequences || [],
           thinkingMode: bot.defaultParameters.thinkingMode ?? false,
         },
+        trainingExamples: bot.trainingExamples || [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -470,6 +600,13 @@ export function AppProvider({ children }: AppProviderProps) {
     [currentConversation]
   );
 
+  const getBotMessages = useCallback(
+    (botId: string): Message[] => {
+      return botMessages[botId] || [];
+    },
+    [botMessages]
+  );
+
   const sendMessage = useCallback(
     async (
       content: string,
@@ -477,13 +614,16 @@ export function AppProvider({ children }: AppProviderProps) {
       setTargetMessages?: (msgs: Message[]) => void,
       setTargetStreamingId?: (id: string | null) => void,
       setIsLoadingTarget?: (loading: boolean) => void
-    ) => {
+    ): Promise<{ success: boolean; error?: string; provider?: string }> => {
       const currentMessages = targetBot
         ? botMessages[targetBot.id] || []
         : messages;
       const currentSystemPrompt = targetBot
         ? targetBot.systemPrompt
         : systemPrompt;
+      const currentExamples = targetBot
+        ? targetBot.trainingExamples || []
+        : trainingExamples;
       const currentParameters = targetBot
         ? targetBot.defaultParameters
         : parameters;
@@ -494,10 +634,11 @@ export function AppProvider({ children }: AppProviderProps) {
       const providerKey = currentModel.provider;
       const apiKey = settings.apiKeys[providerKey];
       if (!apiKey) {
-        alert(
-          `Please configure your ${currentModel.provider} API key in settings.`
-        );
-        return;
+        return {
+          success: false,
+          error: 'api_key_missing',
+          provider: currentModel.provider,
+        };
       }
 
       const userMessage: Message = {
@@ -534,10 +675,19 @@ export function AppProvider({ children }: AppProviderProps) {
           content: m.content,
         }));
 
+        // Combine system prompt with training examples
+        const formattedExamples = formatTrainingExamples(currentExamples);
+        let finalSystemPrompt = currentSystemPrompt || '';
+        if (formattedExamples) {
+          finalSystemPrompt = finalSystemPrompt
+            ? `${finalSystemPrompt}\n\n${formattedExamples}`
+            : formattedExamples;
+        }
+
         const stream = provider.generateStream({
           model: currentModel.id,
           messages: messagesForApi,
-          systemPrompt: currentSystemPrompt || undefined,
+          systemPrompt: finalSystemPrompt || undefined,
           parameters: currentParameters,
         });
 
@@ -568,6 +718,7 @@ export function AppProvider({ children }: AppProviderProps) {
         if (!targetBot) {
           setTimeout(() => saveCurrentConversation(), 100);
         }
+        return { success: true };
       } catch (error) {
         console.error('Error generating response:', error);
         const errorMessage: Message = {
@@ -591,6 +742,7 @@ export function AppProvider({ children }: AppProviderProps) {
         } else {
           setMessages([...updatedMessages, errorMessage]);
         }
+        return { success: true }; // Error shown in chat, so still "success" for clearing input
       } finally {
         setIsLoading(false);
         if (setIsLoadingTarget) setIsLoadingTarget(false);
@@ -603,12 +755,26 @@ export function AppProvider({ children }: AppProviderProps) {
       selectedModelValue,
       messages,
       systemPrompt,
+      trainingExamples,
       parameters,
       botMessages,
-      addMessage,
-      updateMessage,
       saveCurrentConversation,
     ]
+  );
+
+  // Wrapped setComparisonMode that sets current bot as first comparing bot when entering
+  const handleSetComparisonMode = useCallback(
+    (enabled: boolean) => {
+      setComparisonMode(enabled);
+      if (enabled) {
+        // When entering comparison mode, set the current bot as the first bot
+        setComparingBots([currentBotValue, null]);
+      } else {
+        // When exiting, clear the comparing bots
+        setComparingBots([null, null]);
+      }
+    },
+    [currentBotValue]
   );
 
   const value: AppState = useMemo(
@@ -621,6 +787,8 @@ export function AppProvider({ children }: AppProviderProps) {
       setParameters: updateParameters,
       systemPrompt,
       setSystemPrompt: updateSystemPrompt,
+      trainingExamples,
+      setTrainingExamples: updateTrainingExamples,
       messages,
       addMessage,
       updateMessage,
@@ -632,6 +800,7 @@ export function AppProvider({ children }: AppProviderProps) {
       createBot,
       updateBot,
       deleteBot,
+      reorderBots,
       exportBot,
       exportDefaultAssistant,
       exportAllBots,
@@ -650,9 +819,10 @@ export function AppProvider({ children }: AppProviderProps) {
       parameterPanelCollapsed,
       setParameterPanelCollapsed,
       comparisonMode,
-      setComparisonMode,
+      setComparisonMode: handleSetComparisonMode,
       comparingBots,
       setComparingBots,
+      getBotMessages,
     }),
     [
       settings,
@@ -663,6 +833,8 @@ export function AppProvider({ children }: AppProviderProps) {
       updateParameters,
       systemPrompt,
       updateSystemPrompt,
+      trainingExamples,
+      updateTrainingExamples,
       messages,
       addMessage,
       updateMessage,
@@ -674,6 +846,7 @@ export function AppProvider({ children }: AppProviderProps) {
       createBot,
       updateBot,
       deleteBot,
+      reorderBots,
       exportBot,
       exportDefaultAssistant,
       exportAllBots,
@@ -691,8 +864,9 @@ export function AppProvider({ children }: AppProviderProps) {
       parameterPanelCollapsed,
       comparisonMode,
       comparingBots,
-      setComparisonMode,
+      handleSetComparisonMode,
       setComparingBots,
+      getBotMessages,
     ]
   );
 

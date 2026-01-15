@@ -4,7 +4,8 @@ import { ParameterPanel } from '../config';
 import { ChatInput } from '../chat/ChatInput';
 import { ComparisonChatSection } from './ComparisonChatSection';
 import { DEFAULT_PARAMETERS } from '../../types/parameters';
-import type { Bot, Message, GenerationParameters } from '../../types';
+import { MODELS } from '../../constants/models';
+import type { Bot, Message, GenerationParameters, TrainingExample } from '../../types';
 import './ComparisonView.css';
 
 export function ComparisonView() {
@@ -16,6 +17,8 @@ export function ComparisonView() {
     sendMessage,
     updateBot,
     setComparisonMode,
+    getBotMessages,
+    settings,
   } = useApp();
 
   const [bot1Messages, setBot1Messages] = useState<Message[]>([]);
@@ -29,16 +32,27 @@ export function ComparisonView() {
 
   const [parameters1Collapsed, setParameters1Collapsed] = useState(true);
   const [systemPrompt1Collapsed, setSystemPrompt1Collapsed] = useState(true);
+  const [examples1Collapsed, setExamples1Collapsed] = useState(true);
   const [chat1Collapsed, setChat1Collapsed] = useState(false);
 
   const [parameters2Collapsed, setParameters2Collapsed] = useState(true);
   const [systemPrompt2Collapsed, setSystemPrompt2Collapsed] = useState(true);
+  const [examples2Collapsed, setExamples2Collapsed] = useState(true);
   const [chat2Collapsed, setChat2Collapsed] = useState(false);
 
   useEffect(() => {
-    setSelectedBot1(comparingBots[0]?.id || 'default');
-    setSelectedBot2(comparingBots[1]?.id || 'default');
-  }, [comparingBots]);
+    const bot1Id = comparingBots[0]?.id || 'default';
+    const bot2Id = comparingBots[1]?.id || 'default';
+    setSelectedBot1(bot1Id);
+    setSelectedBot2(bot2Id);
+    // Load existing messages for the bots
+    if (comparingBots[0]) {
+      setBot1Messages(getBotMessages(comparingBots[0].id));
+    }
+    if (comparingBots[1]) {
+      setBot2Messages(getBotMessages(comparingBots[1].id));
+    }
+  }, [comparingBots, getBotMessages]);
 
   const getBotParams = (bot: Bot | null) => {
     return bot?.defaultParameters || DEFAULT_PARAMETERS;
@@ -48,12 +62,31 @@ export function ComparisonView() {
     return bot?.systemPrompt || '';
   };
 
+  const getBotExamples = (bot: Bot | null): TrainingExample[] => {
+    return bot?.trainingExamples || [];
+  };
+
+  const getBotModel = (bot: Bot | null): string => {
+    return bot?.preferredModel || settings.defaultModel || MODELS[0].id;
+  };
+
+  const handleModelChange = (index: 0 | 1, modelId: string) => {
+    const bot = comparingBots[index];
+    if (bot) {
+      updateBot(bot.id, { preferredModel: modelId });
+      const updatedBots: [Bot | null, Bot | null] = [...comparingBots];
+      updatedBots[index] = { ...bot, preferredModel: modelId };
+      setComparingBots(updatedBots);
+    }
+  };
+
   const handleParametersToggle = (index: 0 | 1) => {
     if (index === 0) {
       const newState = !parameters1Collapsed;
       setParameters1Collapsed(newState);
       if (!newState) {
         setSystemPrompt1Collapsed(true);
+        setExamples1Collapsed(true);
         setChat1Collapsed(true);
       }
     } else {
@@ -61,6 +94,7 @@ export function ComparisonView() {
       setParameters2Collapsed(newState);
       if (!newState) {
         setSystemPrompt2Collapsed(true);
+        setExamples2Collapsed(true);
         setChat2Collapsed(true);
       }
     }
@@ -72,6 +106,7 @@ export function ComparisonView() {
       setSystemPrompt1Collapsed(newState);
       if (!newState) {
         setParameters1Collapsed(true);
+        setExamples1Collapsed(true);
         setChat1Collapsed(true);
       }
     } else {
@@ -79,6 +114,27 @@ export function ComparisonView() {
       setSystemPrompt2Collapsed(newState);
       if (!newState) {
         setParameters2Collapsed(true);
+        setExamples2Collapsed(true);
+        setChat2Collapsed(true);
+      }
+    }
+  };
+
+  const handleExamplesToggle = (index: 0 | 1) => {
+    if (index === 0) {
+      const newState = !examples1Collapsed;
+      setExamples1Collapsed(newState);
+      if (!newState) {
+        setParameters1Collapsed(true);
+        setSystemPrompt1Collapsed(true);
+        setChat1Collapsed(true);
+      }
+    } else {
+      const newState = !examples2Collapsed;
+      setExamples2Collapsed(newState);
+      if (!newState) {
+        setParameters2Collapsed(true);
+        setSystemPrompt2Collapsed(true);
         setChat2Collapsed(true);
       }
     }
@@ -91,6 +147,7 @@ export function ComparisonView() {
       if (!newState) {
         setParameters1Collapsed(true);
         setSystemPrompt1Collapsed(true);
+        setExamples1Collapsed(true);
       }
     } else {
       const newState = !chat2Collapsed;
@@ -98,6 +155,7 @@ export function ComparisonView() {
       if (!newState) {
         setParameters2Collapsed(true);
         setSystemPrompt2Collapsed(true);
+        setExamples2Collapsed(true);
       }
     }
   };
@@ -117,10 +175,14 @@ export function ComparisonView() {
 
     if (index === 0) {
       setSelectedBot1(botId);
-      setBot1Messages([]);
+      // Load existing messages for this bot
+      const existingMessages = botId !== 'default' && botId !== '' ? getBotMessages(botId) : [];
+      setBot1Messages(existingMessages);
     } else {
       setSelectedBot2(botId);
-      setBot2Messages([]);
+      // Load existing messages for this bot
+      const existingMessages = botId !== 'default' && botId !== '' ? getBotMessages(botId) : [];
+      setBot2Messages(existingMessages);
     }
   };
 
@@ -144,13 +206,33 @@ export function ComparisonView() {
     }
   };
 
+  const handleExamplesChange = (index: 0 | 1, examples: TrainingExample[]) => {
+    const bot = comparingBots[index];
+    if (bot) {
+      updateBot(bot.id, { trainingExamples: examples });
+      const updatedBots: [Bot | null, Bot | null] = [...comparingBots];
+      updatedBots[index] = { ...bot, trainingExamples: examples };
+      setComparingBots(updatedBots);
+    }
+  };
+
+  const handleDescriptionChange = (index: 0 | 1, description: string) => {
+    const bot = comparingBots[index];
+    if (bot) {
+      updateBot(bot.id, { description });
+      const updatedBots: [Bot | null, Bot | null] = [...comparingBots];
+      updatedBots[index] = { ...bot, description };
+      setComparingBots(updatedBots);
+    }
+  };
+
   const handleSendMessage = async (content: string) => {
     if (!comparingBots[0] && !comparingBots[1]) return;
 
     const sendToBot = async (
       bot: Bot | null,
-      index: 0 | 1,
-      messages: Message[],
+      _index: 0 | 1,
+      _messages: Message[],
       setMessages: (msgs: Message[]) => void,
       setIsLoading: (loading: boolean) => void,
       setStreamingId: (id: string | null) => void
@@ -220,7 +302,7 @@ export function ComparisonView() {
               </div>
             ) : (
               <>
-                <div className={`ai-studio-comparison-config ${!parameters1Collapsed || !systemPrompt1Collapsed ? 'has-expanded' : ''}`}>
+                <div className={`ai-studio-comparison-config ${!parameters1Collapsed || !systemPrompt1Collapsed || !examples1Collapsed ? 'has-expanded' : ''}`}>
                   <ParameterPanel
                     parameters={getBotParams(comparingBots[0])}
                     onChange={(params) => handleParametersChange(0, params)}
@@ -229,10 +311,17 @@ export function ComparisonView() {
                     onParametersToggle={() => handleParametersToggle(0)}
                     systemPromptCollapsedProp={systemPrompt1Collapsed}
                     onSystemPromptToggle={() => handleSystemPromptToggle(0)}
+                    examplesCollapsedProp={examples1Collapsed}
+                    onExamplesToggle={() => handleExamplesToggle(0)}
                     currentBot={comparingBots[0]}
+                    onDescriptionChange={(description) => handleDescriptionChange(0, description)}
                     systemPrompt={getBotSystemPrompt(comparingBots[0])}
                     onSystemPromptChange={(prompt) => handleSystemPromptChange(0, prompt)}
+                    trainingExamples={getBotExamples(comparingBots[0])}
+                    onTrainingExamplesChange={(examples) => handleExamplesChange(0, examples)}
                     hideBotName={true}
+                    selectedModel={getBotModel(comparingBots[0])}
+                    onModelChange={(modelId) => handleModelChange(0, modelId)}
                   />
                 </div>
                 <div className={`ai-studio-comparison-chat-section-wrapper ${!chat1Collapsed ? 'expanded' : ''}`}>
@@ -274,7 +363,7 @@ export function ComparisonView() {
               </div>
             ) : (
               <>
-                <div className={`ai-studio-comparison-config ${!parameters2Collapsed || !systemPrompt2Collapsed ? 'has-expanded' : ''}`}>
+                <div className={`ai-studio-comparison-config ${!parameters2Collapsed || !systemPrompt2Collapsed || !examples2Collapsed ? 'has-expanded' : ''}`}>
                   <ParameterPanel
                     parameters={getBotParams(comparingBots[1])}
                     onChange={(params) => handleParametersChange(1, params)}
@@ -283,10 +372,17 @@ export function ComparisonView() {
                     onParametersToggle={() => handleParametersToggle(1)}
                     systemPromptCollapsedProp={systemPrompt2Collapsed}
                     onSystemPromptToggle={() => handleSystemPromptToggle(1)}
+                    examplesCollapsedProp={examples2Collapsed}
+                    onExamplesToggle={() => handleExamplesToggle(1)}
                     currentBot={comparingBots[1]}
+                    onDescriptionChange={(description) => handleDescriptionChange(1, description)}
                     systemPrompt={getBotSystemPrompt(comparingBots[1])}
                     onSystemPromptChange={(prompt) => handleSystemPromptChange(1, prompt)}
+                    trainingExamples={getBotExamples(comparingBots[1])}
+                    onTrainingExamplesChange={(examples) => handleExamplesChange(1, examples)}
                     hideBotName={true}
+                    selectedModel={getBotModel(comparingBots[1])}
+                    onModelChange={(modelId) => handleModelChange(1, modelId)}
                   />
                 </div>
                 <div className={`ai-studio-comparison-chat-section-wrapper ${!chat2Collapsed ? 'expanded' : ''}`}>

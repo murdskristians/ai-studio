@@ -15,6 +15,10 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
   const [editingName, setEditingName] = useState<string>('');
   const editInputRef = useRef<HTMLInputElement>(null);
 
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   const {
     bots,
     currentBot,
@@ -25,6 +29,7 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
     exportDefaultAssistant,
     exportAllBots,
     updateBot,
+    reorderBots,
   } = useApp();
 
   useEffect(() => {
@@ -73,6 +78,45 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
       e.preventDefault();
       handleCancelEdit();
     }
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    // Add a slight delay to show the dragging state
+    const target = e.currentTarget as HTMLElement;
+    setTimeout(() => {
+      target.classList.add('dragging');
+    }, 0);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    const target = e.currentTarget as HTMLElement;
+    target.classList.remove('dragging');
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== dropIndex) {
+      reorderBots(draggedIndex, dropIndex);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   if (sidebarCollapsed) {
@@ -150,16 +194,22 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
               </div>
             </button>
 
-            {bots.map(bot => (
+            {bots.map((bot, index) => (
               <button
                 key={bot.id}
-                className={`ai-studio-list-item ${currentBot?.id === bot.id ? 'active' : ''}`}
+                className={`ai-studio-list-item ${currentBot?.id === bot.id ? 'active' : ''} ${draggedIndex === index ? 'dragging' : ''} ${dragOverIndex === index ? 'drag-over' : ''}`}
                 onClick={() => {
                   if (editingBotId !== bot.id) {
                     setCurrentBot(bot);
                   }
                 }}
                 onDoubleClick={(e) => handleDoubleClick(e, bot.id, bot.name)}
+                draggable={editingBotId !== bot.id}
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, index)}
               >
                 <span className="ai-studio-item-icon">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

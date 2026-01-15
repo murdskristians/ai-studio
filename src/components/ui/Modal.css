@@ -88,10 +88,9 @@
 }
 
 .ai-studio-modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
   padding: 16px 24px;
   border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
 }

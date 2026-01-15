@@ -3,26 +3,44 @@ import { Button } from '../ui';
 import './ChatInput.css';
 
 interface ChatInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string) => void | Promise<{ success: boolean; error?: string; provider?: string } | void>;
   disabled?: boolean;
   placeholder?: string;
   messageHistory?: string[];
+  onApiKeyError?: (provider: string) => void;
 }
 
-export function ChatInput({ onSend, disabled, placeholder = 'Type a message...', messageHistory = [] }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, placeholder = 'Type a message...', messageHistory = [], onApiKeyError }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [tempValue, setTempValue] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSubmit = () => {
-    if (value.trim() && !disabled) {
-      onSend(value.trim());
-      setValue('');
-      setHistoryIndex(-1);
-      setTempValue('');
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+  const handleSubmit = async () => {
+    if (value.trim() && !disabled && !isSubmitting) {
+      const messageToSend = value.trim();
+      setIsSubmitting(true);
+
+      try {
+        const result = await onSend(messageToSend);
+
+        // Check if there was an API key error
+        if (result && !result.success && result.error === 'api_key_missing' && result.provider) {
+          // Don't clear input, trigger API key error handler
+          onApiKeyError?.(result.provider);
+          return;
+        }
+
+        // Success - clear the input
+        setValue('');
+        setHistoryIndex(-1);
+        setTempValue('');
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+        }
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };

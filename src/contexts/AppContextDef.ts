@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import type { Bot, Conversation, Message, GenerationParameters, ModelConfig, AppSettings } from '../types';
+import type { Bot, Conversation, Message, GenerationParameters, ModelConfig, AppSettings, TrainingExample } from '../types';
 
 export interface AppState {
   settings: AppSettings;
@@ -10,6 +10,8 @@ export interface AppState {
   setParameters: (params: GenerationParameters) => void;
   systemPrompt: string;
   setSystemPrompt: (prompt: string) => void;
+  trainingExamples: TrainingExample[];
+  setTrainingExamples: (examples: TrainingExample[]) => void;
   messages: Message[];
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Message;
   updateMessage: (id: string, content: string) => void;
@@ -21,6 +23,7 @@ export interface AppState {
   createBot: (bot?: Partial<Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>>) => Bot;
   updateBot: (id: string, updates: Partial<Bot>) => void;
   deleteBot: (id: string) => void;
+  reorderBots: (fromIndex: number, toIndex: number) => void;
   exportBot: (id: string) => void;
   exportDefaultAssistant: () => void;
   exportAllBots: () => void;
@@ -39,7 +42,7 @@ export interface AppState {
     setTargetMessages?: (msgs: Message[]) => void,
     setTargetStreamingId?: (id: string | null) => void,
     setIsLoadingTarget?: (loading: boolean) => void
-  ) => Promise<void>;
+  ) => Promise<{ success: boolean; error?: string; provider?: string }>;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
   parameterPanelCollapsed: boolean;
@@ -48,6 +51,7 @@ export interface AppState {
   setComparisonMode: (enabled: boolean) => void;
   comparingBots: [Bot | null, Bot | null];
   setComparingBots: (bots: [Bot | null, Bot | null]) => void;
+  getBotMessages: (botId: string) => Message[];
 }
 
 export const AppContext = createContext<AppState | null>(null);

@@ -1,4 +1,3 @@
-import { ModelSelector } from '../model';
 import { Button } from '../ui';
 import { useApp } from '../../contexts';
 import './Header.css';
@@ -8,10 +7,14 @@ interface HeaderProps {
 }
 
 export function Header({ onOpenSettings }: HeaderProps) {
-  const { selectedModel, setSelectedModel, comparisonMode, setComparisonMode } = useApp();
+  const { comparisonMode, setComparisonMode, clearMessages } = useApp();
 
   const handleToggleComparisonMode = () => {
     setComparisonMode(!comparisonMode);
+  };
+
+  const handleClearConversation = () => {
+    clearMessages();
   };
 
   return (
@@ -33,15 +36,16 @@ export function Header({ onOpenSettings }: HeaderProps) {
       </div>
 
       <div className="ai-studio-header-center">
-        {!comparisonMode && (
-          <ModelSelector
-            value={selectedModel.id}
-            onChange={setSelectedModel}
-          />
-        )}
+        {/* Model selector moved to ParameterPanel */}
       </div>
 
       <div className="ai-studio-header-right">
+        <Button variant="ghost" size="sm" onClick={handleClearConversation} className="clear-conversation">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 4H14M5 4V2.5C5 2.22386 5.22386 2 5.5 2H10.5C10.7761 2 11 2.22386 11 2.5V4M6 7V11M10 7V11M3 4L4 13.5C4 13.7761 4.22386 14 4.5 14H11.5C11.7761 14 12 13.7761 12 13.5L13 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Clear
+        </Button>
         <Button variant="ghost" size="sm" onClick={handleToggleComparisonMode} className={comparisonMode ? 'active' : ''}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M10 3.5H6C4.61929 3.5 3.5 4.61929 3.5 6V10C3.5 11.3807 4.61929 12.5 6 12.5H10C11.3807 12.5 12.5 11.3807 12.5 10V6C12.5 4.61929 11.3807 3.5 10 3.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
