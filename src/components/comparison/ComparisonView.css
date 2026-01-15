@@ -176,6 +176,27 @@
   overflow-y: auto;
 }
 
+.ai-studio-comparison-config .ai-studio-examples-section {
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.ai-studio-comparison-config .ai-studio-examples-section.expanded {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ai-studio-comparison-config .ai-studio-examples-section.expanded .ai-studio-examples-editor {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ai-studio-comparison-config .ai-studio-examples-section.expanded .ai-studio-examples-content {
+  overflow-y: auto;
+}
+
 .ai-studio-comparison-config.has-expanded {
   flex: 1;
   min-height: 0;

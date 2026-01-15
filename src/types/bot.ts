@@ -1,6 +1,13 @@
 import type { GenerationParameters } from './parameters';
 import type { ProviderType } from './ai';
 
+export interface TrainingExample {
+  id: string;
+  input: string;
+  output: string;
+  enabled: boolean;
+}
+
 export interface Bot {
   id: string;
   name: string;
@@ -9,6 +16,7 @@ export interface Bot {
   preferredModel?: string;
   preferredProvider?: ProviderType;
   defaultParameters: GenerationParameters;
+  trainingExamples?: TrainingExample[];
   createdAt: number;
   updatedAt: number;
 }

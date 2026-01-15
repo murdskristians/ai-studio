@@ -7,10 +7,11 @@ import './ChatContainer.css';
 
 interface ChatContainerProps {
   messages: Message[];
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string) => void | Promise<{ success: boolean; error?: string; provider?: string } | void>;
   isLoading?: boolean;
   streamingMessageId?: string | null;
   hideInput?: boolean;
+  onApiKeyError?: (provider: string) => void;
 }
 
 export function ChatContainer({
@@ -19,6 +20,7 @@ export function ChatContainer({
   isLoading,
   streamingMessageId,
   hideInput = false,
+  onApiKeyError,
 }: ChatContainerProps) {
   const { updateMessage, deleteMessage, sendMessage } = useApp();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -122,6 +124,7 @@ export function ChatContainer({
         disabled={isLoading}
         placeholder={isLoading ? 'Generating response...' : 'Type a message...'}
         messageHistory={messageHistory}
+        onApiKeyError={onApiKeyError}
       />
       )}
     </div>

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { AppProvider, useApp } from './contexts';
-import { MainLayout, Header, Sidebar, SettingsModal } from './components/layout';
+import { MainLayout, Header, HeaderHandle, Sidebar, SettingsModal } from './components/layout';
 import { ChatContainer } from './components/chat';
 import { ParameterPanel } from './components/config';
 import { BotEditorModal } from './components/bots';
 import { ComparisonView } from './components/comparison';
+import { Modal, Button } from './components/ui';
 import type { Bot } from './types';
 import './index.css';
 
@@ -13,6 +14,8 @@ function AppContent() {
     messages,
     systemPrompt,
     setSystemPrompt,
+    trainingExamples,
+    setTrainingExamples,
     sendMessage,
     isLoading,
     streamingMessageId,
@@ -31,6 +34,8 @@ function AppContent() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [botEditorOpen, setBotEditorOpen] = useState(false);
   const [editingBot, setEditingBot] = useState<Bot | null>(null);
+  const [apiKeyErrorProvider, setApiKeyErrorProvider] = useState<string | null>(null);
+  const headerRef = useRef<HeaderHandle>(null);
 
   const handleCreateBot = () => {
     // Create bot directly with default values (no popup)
@@ -51,13 +56,30 @@ function AppContent() {
     }
   };
 
+  const handleApiKeyError = (provider: string) => {
+    setApiKeyErrorProvider(provider);
+  };
+
+  const handleGoToApiKeys = () => {
+    setApiKeyErrorProvider(null);
+    setSettingsOpen(true);
+  };
+
+  const handleSelectModel = () => {
+    setApiKeyErrorProvider(null);
+    // Small delay to ensure modal is closed before focusing
+    setTimeout(() => {
+      headerRef.current?.focusModelSelector();
+    }, 100);
+  };
+
   return (
     <>
       {comparisonMode ? (
         <ComparisonView />
       ) : (
         <MainLayout
-          header={<Header onOpenSettings={() => setSettingsOpen(true)} />}
+          header={<Header ref={headerRef} onOpenSettings={() => setSettingsOpen(true)} />}
           sidebar={
             <Sidebar
               onCreateBot={handleCreateBot}
@@ -71,6 +93,7 @@ function AppContent() {
               onSendMessage={sendMessage}
               isLoading={isLoading}
               streamingMessageId={streamingMessageId}
+              onApiKeyError={handleApiKeyError}
             />
           }
           panel={
@@ -83,6 +106,8 @@ function AppContent() {
               onBotNameChange={(name) => currentBot && updateBot(currentBot.id, { name })}
               systemPrompt={systemPrompt}
               onSystemPromptChange={setSystemPrompt}
+              trainingExamples={trainingExamples}
+              onTrainingExamplesChange={setTrainingExamples}
             />
           }
         />
@@ -100,6 +125,27 @@ function AppContent() {
         onSave={handleSaveBot}
         onDelete={deleteBot}
       />
+
+      <Modal
+        isOpen={apiKeyErrorProvider !== null}
+        onClose={() => setApiKeyErrorProvider(null)}
+        title="API Key Required"
+        size="sm"
+        footer={
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between' }}>
+            <Button variant="ghost" onClick={handleSelectModel}>
+              Select AI Model
+            </Button>
+            <Button onClick={handleGoToApiKeys}>
+              Go to API Keys
+            </Button>
+          </div>
+        }
+      >
+        <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+          Please configure your <strong>{apiKeyErrorProvider}</strong> API key in settings to send messages.
+        </p>
+      </Modal>
     </>
   );
 }

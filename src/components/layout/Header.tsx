@@ -1,4 +1,5 @@
-import { ModelSelector } from '../model';
+import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { ModelSelector, ModelSelectorHandle } from '../model';
 import { Button } from '../ui';
 import { useApp } from '../../contexts';
 import './Header.css';
@@ -7,8 +8,17 @@ interface HeaderProps {
   onOpenSettings: () => void;
 }
 
-export function Header({ onOpenSettings }: HeaderProps) {
+export interface HeaderHandle {
+  focusModelSelector: () => void;
+}
+
+export const Header = forwardRef<HeaderHandle, HeaderProps>(function Header({ onOpenSettings }, ref) {
   const { selectedModel, setSelectedModel, comparisonMode, setComparisonMode } = useApp();
+  const modelSelectorRef = useRef<ModelSelectorHandle>(null);
+
+  useImperativeHandle(ref, () => ({
+    focusModelSelector: () => modelSelectorRef.current?.focus(),
+  }));
 
   const handleToggleComparisonMode = () => {
     setComparisonMode(!comparisonMode);
@@ -35,6 +45,7 @@ export function Header({ onOpenSettings }: HeaderProps) {
       <div className="ai-studio-header-center">
         {!comparisonMode && (
           <ModelSelector
+            ref={modelSelectorRef}
             value={selectedModel.id}
             onChange={setSelectedModel}
           />
@@ -58,4 +69,4 @@ export function Header({ onOpenSettings }: HeaderProps) {
       </div>
     </header>
   );
-}
+});

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Slider, TagInput, Input, Button, Toggle } from '../ui';
 import { SystemPromptEditor } from './SystemPromptEditor';
-import type { GenerationParameters, Bot } from '../../types';
+import { TrainingExamplesEditor } from './TrainingExamplesEditor';
+import type { GenerationParameters, Bot, TrainingExample } from '../../types';
 import { DEFAULT_PARAMETERS, PARAMETER_LIMITS } from '../../types/parameters';
 import './ParameterPanel.css';
 
@@ -14,12 +15,16 @@ interface ParameterPanelProps {
   onBotNameChange?: (name: string) => void;
   systemPrompt?: string;
   onSystemPromptChange?: (value: string) => void;
+  trainingExamples?: TrainingExample[];
+  onTrainingExamplesChange?: (examples: TrainingExample[]) => void;
   hideBotName?: boolean;
   // External control for comparison mode
   parametersCollapsedProp?: boolean;
   onParametersToggle?: () => void;
   systemPromptCollapsedProp?: boolean;
   onSystemPromptToggle?: () => void;
+  examplesCollapsedProp?: boolean;
+  onExamplesToggle?: () => void;
 }
 
 export function ParameterPanel({
@@ -31,19 +36,25 @@ export function ParameterPanel({
   onBotNameChange,
   systemPrompt,
   onSystemPromptChange,
+  trainingExamples,
+  onTrainingExamplesChange,
   hideBotName,
   parametersCollapsedProp,
   onParametersToggle,
   systemPromptCollapsedProp,
   onSystemPromptToggle,
+  examplesCollapsedProp,
+  onExamplesToggle,
 }: ParameterPanelProps) {
   const [systemPromptCollapsedInternal, setSystemPromptCollapsedInternal] = useState(true);
   const [parametersCollapsedInternal, setParametersCollapsedInternal] = useState(false);
+  const [examplesCollapsedInternal, setExamplesCollapsedInternal] = useState(true);
 
   // Use external props if provided, otherwise use internal state
   const isExternallyControlled = parametersCollapsedProp !== undefined;
   const parametersCollapsed = isExternallyControlled ? parametersCollapsedProp : parametersCollapsedInternal;
   const systemPromptCollapsed = isExternallyControlled ? (systemPromptCollapsedProp ?? true) : systemPromptCollapsedInternal;
+  const examplesCollapsed = isExternallyControlled ? (examplesCollapsedProp ?? true) : examplesCollapsedInternal;
 
   const handleSystemPromptToggle = () => {
     if (onSystemPromptToggle) {
@@ -53,6 +64,7 @@ export function ParameterPanel({
       setSystemPromptCollapsedInternal(newState);
       if (!newState) {
         setParametersCollapsedInternal(true);
+        setExamplesCollapsedInternal(true);
       }
     }
   };
@@ -64,6 +76,20 @@ export function ParameterPanel({
       const newState = !parametersCollapsedInternal;
       setParametersCollapsedInternal(newState);
       if (!newState) {
+        setSystemPromptCollapsedInternal(true);
+        setExamplesCollapsedInternal(true);
+      }
+    }
+  };
+
+  const handleExamplesToggle = () => {
+    if (onExamplesToggle) {
+      onExamplesToggle();
+    } else {
+      const newState = !examplesCollapsedInternal;
+      setExamplesCollapsedInternal(newState);
+      if (!newState) {
+        setParametersCollapsedInternal(true);
         setSystemPromptCollapsedInternal(true);
       }
     }
@@ -90,7 +116,7 @@ export function ParameterPanel({
     );
   }
 
-  const bothCollapsed = parametersCollapsed && systemPromptCollapsed;
+  const allCollapsed = parametersCollapsed && systemPromptCollapsed && examplesCollapsed;
 
   return (
     <div className="ai-studio-parameter-panel">
@@ -118,7 +144,7 @@ export function ParameterPanel({
         </div>
       )}
 
-      <div className={`ai-studio-parameters-section ${bothCollapsed ? 'both-collapsed' : ''} ${!parametersCollapsed && systemPromptCollapsed ? 'expanded' : ''}`}>
+      <div className={`ai-studio-parameters-section ${allCollapsed ? 'both-collapsed' : ''} ${!parametersCollapsed && systemPromptCollapsed && examplesCollapsed ? 'expanded' : ''}`}>
         <div className="ai-studio-parameters-header">
           <h3 className="ai-studio-parameters-title" onClick={handleParametersToggle}>Parameters</h3>
           <div className="ai-studio-parameters-header-actions">
@@ -188,12 +214,23 @@ export function ParameterPanel({
       </div>
 
       {systemPrompt !== undefined && onSystemPromptChange && (
-        <div className={`ai-studio-system-prompt-section ${bothCollapsed ? 'both-collapsed' : ''} ${!systemPromptCollapsed && parametersCollapsed ? 'expanded' : ''}`}>
+        <div className={`ai-studio-system-prompt-section ${allCollapsed ? 'both-collapsed' : ''} ${!systemPromptCollapsed && parametersCollapsed && examplesCollapsed ? 'expanded' : ''}`}>
           <SystemPromptEditor
             value={systemPrompt}
             onChange={onSystemPromptChange}
             collapsed={systemPromptCollapsed}
             onToggleCollapse={handleSystemPromptToggle}
+          />
+        </div>
+      )}
+
+      {trainingExamples !== undefined && onTrainingExamplesChange && (
+        <div className={`ai-studio-examples-section ${allCollapsed ? 'both-collapsed' : ''} ${!examplesCollapsed && parametersCollapsed && systemPromptCollapsed ? 'expanded' : ''}`}>
+          <TrainingExamplesEditor
+            examples={trainingExamples}
+            onChange={onTrainingExamplesChange}
+            collapsed={examplesCollapsed}
+            onToggleCollapse={handleExamplesToggle}
           />
         </div>
       )}

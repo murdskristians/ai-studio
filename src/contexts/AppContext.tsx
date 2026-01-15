@@ -7,6 +7,7 @@ import type {
   GenerationParameters,
   ModelConfig,
   AppSettings,
+  TrainingExample,
 } from '../types';
 import { DEFAULT_PARAMETERS } from '../types/parameters';
 import { DEFAULT_SETTINGS } from '../types/settings';
@@ -14,6 +15,16 @@ import { getItem, setItem, STORAGE_KEYS } from '../services/storage';
 import { createProvider } from '../services/providers';
 import { MODELS, getModelById } from '../constants/models';
 import { AppContext, type AppState } from './AppContextDef';
+
+// Helper function to format training examples for the API
+function formatTrainingExamples(examples: TrainingExample[]): string {
+  const enabledExamples = examples.filter(ex => ex.enabled);
+  if (enabledExamples.length === 0) return '';
+
+  return enabledExamples
+    .map(ex => `input: ${ex.input}\noutput: ${ex.output}`)
+    .join('\n\n');
+}
 
 interface AppProviderProps {
   readonly children: ReactNode;
@@ -39,6 +50,9 @@ export function AppProvider({ children }: AppProviderProps) {
 
   // System prompt
   const [systemPrompt, setSystemPrompt] = useState('');
+
+  // Training examples
+  const [trainingExamples, setTrainingExamplesState] = useState<TrainingExample[]>([]);
 
   // Messages
   const [messages, setMessages] = useState<Message[]>([]);
@@ -156,12 +170,14 @@ export function AppProvider({ children }: AppProviderProps) {
       if (bot) {
         setSystemPrompt(bot.systemPrompt);
         setParameters(bot.defaultParameters);
+        setTrainingExamplesState(bot.trainingExamples || []);
         if (bot.preferredModel) {
           setSelectedModel(bot.preferredModel);
         }
       } else {
         setSystemPrompt('');
         setParameters(DEFAULT_PARAMETERS);
+        setTrainingExamplesState([]);
       }
     },
     [setSelectedModel, currentBotValue?.id, messages, botMessages]
@@ -194,6 +210,7 @@ export function AppProvider({ children }: AppProviderProps) {
           defaultParameters: botData?.defaultParameters ?? {
             ...DEFAULT_PARAMETERS,
           },
+          trainingExamples: botData?.trainingExamples ?? [],
           id: uuidv4(),
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -236,6 +253,25 @@ export function AppProvider({ children }: AppProviderProps) {
         );
         setCurrentBotValue((prev) =>
           prev ? { ...prev, systemPrompt: prompt, updatedAt: Date.now() } : null
+        );
+      }
+    },
+    [currentBotValue]
+  );
+
+  const updateTrainingExamples = useCallback(
+    (examples: TrainingExample[]) => {
+      setTrainingExamplesState(examples);
+      if (currentBotValue) {
+        setBots((prev) =>
+          prev.map((bot) =>
+            bot.id === currentBotValue.id
+              ? { ...bot, trainingExamples: examples, updatedAt: Date.now() }
+              : bot
+          )
+        );
+        setCurrentBotValue((prev) =>
+          prev ? { ...prev, trainingExamples: examples, updatedAt: Date.now() } : null
         );
       }
     },
@@ -378,6 +414,7 @@ export function AppProvider({ children }: AppProviderProps) {
           stopSequences: bot.defaultParameters.stopSequences || [],
           thinkingMode: bot.defaultParameters.thinkingMode ?? false,
         },
+        trainingExamples: bot.trainingExamples || [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -477,13 +514,16 @@ export function AppProvider({ children }: AppProviderProps) {
       setTargetMessages?: (msgs: Message[]) => void,
       setTargetStreamingId?: (id: string | null) => void,
       setIsLoadingTarget?: (loading: boolean) => void
-    ) => {
+    ): Promise<{ success: boolean; error?: string; provider?: string }> => {
       const currentMessages = targetBot
         ? botMessages[targetBot.id] || []
         : messages;
       const currentSystemPrompt = targetBot
         ? targetBot.systemPrompt
         : systemPrompt;
+      const currentExamples = targetBot
+        ? targetBot.trainingExamples || []
+        : trainingExamples;
       const currentParameters = targetBot
         ? targetBot.defaultParameters
         : parameters;
@@ -494,10 +534,11 @@ export function AppProvider({ children }: AppProviderProps) {
       const providerKey = currentModel.provider;
       const apiKey = settings.apiKeys[providerKey];
       if (!apiKey) {
-        alert(
-          `Please configure your ${currentModel.provider} API key in settings.`
-        );
-        return;
+        return {
+          success: false,
+          error: 'api_key_missing',
+          provider: currentModel.provider,
+        };
       }
 
       const userMessage: Message = {
@@ -534,10 +575,19 @@ export function AppProvider({ children }: AppProviderProps) {
           content: m.content,
         }));
 
+        // Combine system prompt with training examples
+        const formattedExamples = formatTrainingExamples(currentExamples);
+        let finalSystemPrompt = currentSystemPrompt || '';
+        if (formattedExamples) {
+          finalSystemPrompt = finalSystemPrompt
+            ? `${finalSystemPrompt}\n\n${formattedExamples}`
+            : formattedExamples;
+        }
+
         const stream = provider.generateStream({
           model: currentModel.id,
           messages: messagesForApi,
-          systemPrompt: currentSystemPrompt || undefined,
+          systemPrompt: finalSystemPrompt || undefined,
           parameters: currentParameters,
         });
 
@@ -568,6 +618,7 @@ export function AppProvider({ children }: AppProviderProps) {
         if (!targetBot) {
           setTimeout(() => saveCurrentConversation(), 100);
         }
+        return { success: true };
       } catch (error) {
         console.error('Error generating response:', error);
         const errorMessage: Message = {
@@ -591,6 +642,7 @@ export function AppProvider({ children }: AppProviderProps) {
         } else {
           setMessages([...updatedMessages, errorMessage]);
         }
+        return { success: true }; // Error shown in chat, so still "success" for clearing input
       } finally {
         setIsLoading(false);
         if (setIsLoadingTarget) setIsLoadingTarget(false);
@@ -603,10 +655,9 @@ export function AppProvider({ children }: AppProviderProps) {
       selectedModelValue,
       messages,
       systemPrompt,
+      trainingExamples,
       parameters,
       botMessages,
-      addMessage,
-      updateMessage,
       saveCurrentConversation,
     ]
   );
@@ -621,6 +672,8 @@ export function AppProvider({ children }: AppProviderProps) {
       setParameters: updateParameters,
       systemPrompt,
       setSystemPrompt: updateSystemPrompt,
+      trainingExamples,
+      setTrainingExamples: updateTrainingExamples,
       messages,
       addMessage,
       updateMessage,
@@ -663,6 +716,8 @@ export function AppProvider({ children }: AppProviderProps) {
       updateParameters,
       systemPrompt,
       updateSystemPrompt,
+      trainingExamples,
+      updateTrainingExamples,
       messages,
       addMessage,
       updateMessage,
