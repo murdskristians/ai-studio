@@ -65,6 +65,12 @@ export const ParameterPanel = forwardRef<ParameterPanelHandle, ParameterPanelPro
   const [examplesCollapsedInternal, setExamplesCollapsedInternal] = useState(true);
   const modelSelectorRef = useRef<ModelSelectorHandle>(null);
 
+  // Use external props if provided, otherwise use internal state
+  const isExternallyControlled = parametersCollapsedProp !== undefined;
+  const parametersCollapsed = isExternallyControlled ? parametersCollapsedProp : parametersCollapsedInternal;
+  const systemPromptCollapsed = isExternallyControlled ? (systemPromptCollapsedProp ?? true) : systemPromptCollapsedInternal;
+  const examplesCollapsed = isExternallyControlled ? (examplesCollapsedProp ?? true) : examplesCollapsedInternal;
+
   useImperativeHandle(ref, () => ({
     focusModelSelector: () => {
       // Expand parameters section if collapsed
@@ -79,12 +85,6 @@ export const ParameterPanel = forwardRef<ParameterPanelHandle, ParameterPanelPro
       }, 50);
     },
   }));
-
-  // Use external props if provided, otherwise use internal state
-  const isExternallyControlled = parametersCollapsedProp !== undefined;
-  const parametersCollapsed = isExternallyControlled ? parametersCollapsedProp : parametersCollapsedInternal;
-  const systemPromptCollapsed = isExternallyControlled ? (systemPromptCollapsedProp ?? true) : systemPromptCollapsedInternal;
-  const examplesCollapsed = isExternallyControlled ? (examplesCollapsedProp ?? true) : examplesCollapsedInternal;
 
   const handleSystemPromptToggle = () => {
     if (onSystemPromptToggle) {

@@ -26,39 +26,39 @@
 }
 
 /* Variants */
-.ai-studio-btn-primary {
+.ai-studio-btn.ai-studio-btn-primary {
   background-color: var(--accent-blue);
   color: white;
 }
 
-.ai-studio-btn-primary:hover:not(:disabled) {
+.ai-studio-btn.ai-studio-btn-primary:hover:not(:disabled) {
   background-color: var(--accent-blue-hover);
 }
 
-.ai-studio-btn-secondary {
+.ai-studio-btn.ai-studio-btn-secondary {
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
 }
 
-.ai-studio-btn-secondary:hover:not(:disabled) {
+.ai-studio-btn.ai-studio-btn-secondary:hover:not(:disabled) {
   background-color: var(--bg-hover);
 }
 
-.ai-studio-btn-ghost {
+.ai-studio-btn.ai-studio-btn-ghost {
   background-color: transparent;
   color: var(--text-secondary);
 }
 
-.ai-studio-btn-ghost:hover:not(:disabled) {
+.ai-studio-btn.ai-studio-btn-ghost:hover:not(:disabled) {
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
 }
 
-.ai-studio-btn-danger {
+.ai-studio-btn.ai-studio-btn-danger {
   background-color: var(--accent-red);
   color: white;
 }
 
-.ai-studio-btn-danger:hover:not(:disabled) {
+.ai-studio-btn.ai-studio-btn-danger:hover:not(:disabled) {
   background-color: #dc2626;
 }

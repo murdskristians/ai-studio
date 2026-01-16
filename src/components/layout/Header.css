@@ -1,6 +1,6 @@
 .ai-studio-header {
   height: var(--header-height);
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-primary);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
@@ -69,12 +69,12 @@
 }
 
 .ai-studio-header-right .ai-studio-btn.clear-conversation {
-  color: #e07850;
+  color: var(--accent-red);
 }
 
 .ai-studio-header-right .ai-studio-btn.clear-conversation:hover {
-  color: #ff6b35;
-  background-color: rgba(224, 120, 80, 0.1);
+  color: #a33a3a;
+  background-color: rgba(227, 100, 100, 0.1);
 }
 
 @media (max-width: 768px) {
