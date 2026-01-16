@@ -21,7 +21,7 @@
   position: relative;
   width: 44px;
   height: 24px;
-  background-color: #4b5563 !important;
+  background-color: var(--border-hover) !important;
   border-radius: var(--radius-full);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -29,7 +29,7 @@
 }
 
 .ai-studio-toggle:hover:not(:disabled) {
-  background-color: #6b7280 !important;
+  background-color: var(--text-muted) !important;
 }
 
 .ai-studio-toggle.checked {
@@ -54,7 +54,7 @@
   background-color: white;
   border-radius: var(--radius-full);
   transition: transform var(--transition-fast);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .ai-studio-toggle.checked .ai-studio-toggle-thumb {

@@ -1,11 +1,12 @@
 .ai-studio-sidebar {
   width: var(--sidebar-width);
   height: 100%;
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-primary);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   transition: width var(--transition-normal);
+  border-radius: 16px 0 0 16px;
 }
 
 .ai-studio-sidebar.collapsed {
@@ -119,6 +120,7 @@
   transition: all var(--transition-fast);
   cursor: pointer;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .ai-studio-list-item:hover {
@@ -185,6 +187,8 @@
   align-items: center;
   gap: 6px;
   height: 20px;
+  min-width: 0;
+  overflow: visible;
 }
 
 .ai-studio-item-edit-input {
@@ -199,6 +203,7 @@
   line-height: 20px;
   outline: none;
   box-sizing: border-box;
+  min-width: 0;
 }
 
 .ai-studio-item-edit-input:focus {
