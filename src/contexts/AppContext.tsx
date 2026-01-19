@@ -69,6 +69,9 @@ interface TargetCallbacks {
   setLoading?: (loading: boolean) => void;
 }
 
+// Default Assistant is a special bot that always exists
+const DEFAULT_ASSISTANT_NAME = 'Default Assistant';
+
 interface AppProviderProps {
   readonly children: ReactNode;
 }
@@ -92,13 +95,8 @@ export function AppProvider({ children }: AppProviderProps) {
   const [bots, setBots] = useState<Bot[]>([]);
   const [currentBotValue, setCurrentBotValue] = useState<Bot | null>(null);
 
-  // Model selection
-  const [selectedModelValue, setSelectedModelValue] = useState<ModelConfig>(
-    () => {
-      const saved = settings.defaultModel;
-      return getModelById(saved) || MODELS[0];
-    }
-  );
+  // Model selection - will be set when bot is loaded
+  const [selectedModelValue, setSelectedModelValue] = useState<ModelConfig>(MODELS[0]);
 
   // Parameters - initialize with defaults, updated when bot is loaded
   const [parameters, setParameters] = useState<GenerationParameters>(DEFAULT_PARAMETERS);
@@ -147,23 +145,47 @@ export function AppProvider({ children }: AppProviderProps) {
       try {
         setIsLoadingBots(true);
         const apiAgents = await agentsApi.list(userId);
-        const loadedBots = apiAgents.map(apiAgentToBot);
+        let loadedBots = apiAgents.map(apiAgentToBot);
+
+        // Ensure Default Assistant exists - create if not found
+        let defaultAssistant = loadedBots.find(b => b.name === DEFAULT_ASSISTANT_NAME);
+        if (!defaultAssistant) {
+          // Create Default Assistant in database
+          const defaultBotData: Partial<Bot> = {
+            name: DEFAULT_ASSISTANT_NAME,
+            description: 'Your default AI assistant',
+            systemPrompt: '',
+            preferredModel: MODELS[0].id,
+            defaultParameters: DEFAULT_PARAMETERS,
+            trainingExamples: [],
+          };
+          const apiAgent = await agentsApi.create(botToApiAgentCreatePayload(defaultBotData, userId));
+          defaultAssistant = apiAgentToBot(apiAgent);
+          loadedBots = [defaultAssistant, ...loadedBots];
+        } else {
+          // Move Default Assistant to the front of the list
+          loadedBots = [defaultAssistant, ...loadedBots.filter(b => b.name !== DEFAULT_ASSISTANT_NAME)];
+        }
+
         setBots(loadedBots);
 
-        // Restore current bot selection from localStorage
+        // Restore current bot selection from localStorage, or use Default Assistant
         const savedBotId = getItem<string | null>(STORAGE_KEYS.CURRENT_BOT, null);
+        let botToSelect = savedBotId ? loadedBots.find(b => b.id === savedBotId) : null;
 
-        if (savedBotId) {
-          const savedBot = loadedBots.find(b => b.id === savedBotId);
-          if (savedBot) {
-            setCurrentBotValue(savedBot);
-            setSystemPrompt(savedBot.systemPrompt);
-            setParameters(savedBot.defaultParameters);
-            setTrainingExamplesState(savedBot.trainingExamples || []);
-            if (savedBot.preferredModel) {
-              const model = getModelById(savedBot.preferredModel);
-              if (model) setSelectedModelValue(model);
-            }
+        // If no saved bot or saved bot not found, select Default Assistant
+        if (!botToSelect) {
+          botToSelect = defaultAssistant;
+        }
+
+        if (botToSelect) {
+          setCurrentBotValue(botToSelect);
+          setSystemPrompt(botToSelect.systemPrompt);
+          setParameters(botToSelect.defaultParameters);
+          setTrainingExamplesState(botToSelect.trainingExamples || []);
+          if (botToSelect.preferredModel) {
+            const model = getModelById(botToSelect.preferredModel);
+            if (model) setSelectedModelValue(model);
           }
         }
 
@@ -187,10 +209,10 @@ export function AppProvider({ children }: AppProviderProps) {
     loadBots();
   }, [userId]);
 
-  // Load chats from API on mount and restore last conversation with messages
+  // Load chats from API after bots are loaded
   useEffect(() => {
-    if (!userId) {
-      setIsLoadingChats(false);
+    // Wait for bots to be loaded first so we know which bot is selected
+    if (!userId || isLoadingBots) {
       return;
     }
 
@@ -202,21 +224,19 @@ export function AppProvider({ children }: AppProviderProps) {
         setConversations(loadedConversations);
 
         // Find the most recent conversation for the selected bot
-        const currentBotId = getItem<string | null>(STORAGE_KEYS.CURRENT_BOT, null);
+        // currentBotValue is already set by the loadBots effect
+        const selectedBotId = currentBotValue?.id;
         let conversationToLoad: Conversation | undefined;
 
-        if (currentBotId) {
-          // Bot is selected - only load conversations belonging to that bot
-          const botConversations = loadedConversations.filter(c => c.botId === currentBotId);
+        if (selectedBotId) {
+          // Find conversations for the selected bot
+          // Also include conversations without botId if this is the Default Assistant (backward compatibility)
+          const isDefaultAssistant = currentBotValue?.name === DEFAULT_ASSISTANT_NAME;
+          const botConversations = loadedConversations.filter(c =>
+            c.botId === selectedBotId || (isDefaultAssistant && !c.botId)
+          );
           if (botConversations.length > 0) {
             conversationToLoad = botConversations.sort((a, b) => b.createdAt - a.createdAt)[0];
-          }
-          // If no conversations for this bot, leave conversationToLoad as undefined (show empty)
-        } else {
-          // Default Assistant selected - only load conversations without a botId
-          const defaultConversations = loadedConversations.filter(c => !c.botId);
-          if (defaultConversations.length > 0) {
-            conversationToLoad = defaultConversations.sort((a, b) => b.createdAt - a.createdAt)[0];
           }
         }
 
@@ -227,11 +247,6 @@ export function AppProvider({ children }: AppProviderProps) {
             const apiMessages = await messagesApi.list(conversationToLoad.id);
             const loadedMessages = apiMessages.map(apiMessageToApp);
             setMessages(loadedMessages);
-
-            // Also set the current bot if the conversation belongs to one
-            if (conversationToLoad.botId) {
-              // Bot will be set by the bots loading effect
-            }
           } catch (error) {
             console.error('Failed to load messages from API:', error);
           }
@@ -244,7 +259,7 @@ export function AppProvider({ children }: AppProviderProps) {
     };
 
     loadChats();
-  }, [userId]);
+  }, [userId, isLoadingBots, currentBotValue]);
 
   // Persist settings to localStorage
   useEffect(() => {
@@ -289,7 +304,7 @@ export function AppProvider({ children }: AppProviderProps) {
     const model = getModelById(modelId);
     if (model) {
       setSelectedModelValue(model);
-      // Update the current bot's preferredModel if a bot is selected
+      // Update the current bot's preferredModel (including Default Assistant)
       if (currentBotValue && userId) {
         const updatedBot = { ...currentBotValue, preferredModel: modelId, updatedAt: Date.now() };
         setBots((prev) =>
@@ -300,9 +315,6 @@ export function AppProvider({ children }: AppProviderProps) {
         setCurrentBotValue(updatedBot);
         // Update in API
         agentsApi.update(botToApiAgentUpdatePayload(updatedBot, userId)).catch(console.error);
-      } else {
-        // Save as default model in settings when using Default Assistant
-        setSettings((prev) => ({ ...prev, defaultModel: modelId }));
       }
     }
   }, [currentBotValue, userId]);
@@ -372,8 +384,10 @@ export function AppProvider({ children }: AppProviderProps) {
       }
 
       // Try to load the most recent conversation for this bot from API
+      // For Default Assistant, also include old conversations without botId (backward compatibility)
+      const isDefaultAssistant = bot?.name === DEFAULT_ASSISTANT_NAME;
       const botConversations = conversations.filter(c =>
-        bot ? c.botId === bot.id : !c.botId
+        bot ? (c.botId === bot.id || (isDefaultAssistant && !c.botId)) : !c.botId
       );
 
       if (botConversations.length > 0) {
@@ -539,10 +553,23 @@ export function AppProvider({ children }: AppProviderProps) {
     async (id: string) => {
       if (!userId) return;
 
+      // Prevent deletion of Default Assistant
+      const botToDelete = bots.find(b => b.id === id);
+      if (botToDelete?.name === DEFAULT_ASSISTANT_NAME) {
+        console.warn('Cannot delete Default Assistant');
+        return;
+      }
+
       // Update local state immediately
       setBots((prev) => prev.filter((bot) => bot.id !== id));
       if (currentBotValue?.id === id) {
-        setCurrentBotValue(null);
+        // Switch to Default Assistant when deleting the current bot
+        const defaultAssistant = bots.find(b => b.name === DEFAULT_ASSISTANT_NAME);
+        if (defaultAssistant) {
+          setCurrentBot(defaultAssistant);
+        } else {
+          setCurrentBotValue(null);
+        }
       }
 
       // Delete via API
@@ -553,7 +580,7 @@ export function AppProvider({ children }: AppProviderProps) {
         // Could revert here, but deletion is less critical
       }
     },
-    [userId, currentBotValue]
+    [userId, currentBotValue, bots, setCurrentBot]
   );
 
   const reorderBots = useCallback((fromIndex: number, toIndex: number) => {
@@ -614,42 +641,6 @@ export function AppProvider({ children }: AppProviderProps) {
     },
     [bots, userId]
   );
-
-  const exportDefaultAssistant = useCallback(() => {
-    const defaultBot = {
-      name: 'Default Assistant',
-      description: '',
-      systemPrompt: '',
-      public: 'false',
-      createdBy: userId || '',
-      defaultParameters: {
-        modelName: '',
-        temperature: DEFAULT_PARAMETERS.temperature,
-        topP: DEFAULT_PARAMETERS.topP,
-        maxTokens: DEFAULT_PARAMETERS.maxTokens,
-        stopSequences: DEFAULT_PARAMETERS.stopSequences,
-        thinkingMode: DEFAULT_PARAMETERS.thinkingMode,
-      },
-      trainingExamples: [],
-      _id: '',
-    };
-
-    const exportData = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      bots: [defaultBot],
-    };
-
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'default-assistant-bot.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [userId]);
 
   const exportAllBots = useCallback(() => {
     if (bots.length === 0) return;
@@ -1098,7 +1089,6 @@ export function AppProvider({ children }: AppProviderProps) {
       deleteBot,
       reorderBots,
       exportBot,
-      exportDefaultAssistant,
       exportAllBots,
       importBots,
       conversations,
@@ -1146,7 +1136,6 @@ export function AppProvider({ children }: AppProviderProps) {
       deleteBot,
       reorderBots,
       exportBot,
-      exportDefaultAssistant,
       exportAllBots,
       importBots,
       conversations,
