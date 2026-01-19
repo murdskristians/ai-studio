@@ -15,6 +15,19 @@ import { getItem, setItem, STORAGE_KEYS } from '../services/storage';
 import { createProvider } from '../services/providers';
 import { MODELS, getModelById } from '../constants/models';
 import { AppContext, type AppState } from './AppContextDef';
+import { useUserId } from './useUser';
+import {
+  agentsApi,
+  chatsApi,
+  messagesApi,
+  apiAgentToBot,
+  botToApiAgentCreatePayload,
+  botToApiAgentUpdatePayload,
+  apiChatToConversation,
+  conversationToApiChatCreatePayload,
+  apiMessageToApp,
+  messageToApiCreatePayload,
+} from '../services/api';
 
 // Helper function to format training examples for the API
 function formatTrainingExamples(examples: TrainingExample[]): string {
@@ -31,86 +44,46 @@ interface AppProviderProps {
 }
 
 export function AppProvider({ children }: AppProviderProps) {
-  // Settings
+  const userId = useUserId();
+
+  // Settings - still use localStorage
   const [settings, setSettings] = useState<AppSettings>(() =>
     getItem(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
   );
 
-  // Model selection - check for saved bot's preferred model first
+  // Loading states for API data
+  const [isLoadingBots, setIsLoadingBots] = useState(true);
+  const [isLoadingChats, setIsLoadingChats] = useState(true);
+
+  // Bots - now loaded from API
+  const [bots, setBots] = useState<Bot[]>([]);
+  const [currentBotValue, setCurrentBotValue] = useState<Bot | null>(null);
+
+  // Model selection
   const [selectedModelValue, setSelectedModelValue] = useState<ModelConfig>(
     () => {
-      // Check if there's a saved bot with a preferred model
-      const savedBotId = getItem<string | null>(STORAGE_KEYS.CURRENT_BOT, null);
-      if (savedBotId) {
-        const savedBots = getItem<Bot[]>(STORAGE_KEYS.BOTS, []);
-        const savedBot = savedBots.find(b => b.id === savedBotId);
-        if (savedBot?.preferredModel) {
-          const botModel = getModelById(savedBot.preferredModel);
-          if (botModel) return botModel;
-        }
-      }
-      // Fall back to default model from settings
       const saved = settings.defaultModel;
       return getModelById(saved) || MODELS[0];
     }
   );
 
-  // Bots - initialize first so we can use saved bot for other state
-  const [bots, setBots] = useState<Bot[]>(() => getItem(STORAGE_KEYS.BOTS, []));
-  const [currentBotValue, setCurrentBotValue] = useState<Bot | null>(() => {
-    const savedBotId = getItem<string | null>(STORAGE_KEYS.CURRENT_BOT, null);
-    if (savedBotId) {
-      const savedBots = getItem<Bot[]>(STORAGE_KEYS.BOTS, []);
-      return savedBots.find(b => b.id === savedBotId) || null;
-    }
-    return null;
-  });
+  // Parameters - initialize with defaults, updated when bot is loaded
+  const [parameters, setParameters] = useState<GenerationParameters>(DEFAULT_PARAMETERS);
 
-  // Get initial bot for state initialization
-  const getInitialBot = (): Bot | null => {
-    const savedBotId = getItem<string | null>(STORAGE_KEYS.CURRENT_BOT, null);
-    if (savedBotId) {
-      const savedBots = getItem<Bot[]>(STORAGE_KEYS.BOTS, []);
-      return savedBots.find(b => b.id === savedBotId) || null;
-    }
-    return null;
-  };
+  // System prompt
+  const [systemPrompt, setSystemPrompt] = useState('');
 
-  // Parameters - initialize from saved bot if available
-  const [parameters, setParameters] = useState<GenerationParameters>(() => {
-    const initialBot = getInitialBot();
-    return initialBot?.defaultParameters || DEFAULT_PARAMETERS;
-  });
+  // Training examples
+  const [trainingExamples, setTrainingExamplesState] = useState<TrainingExample[]>([]);
 
-  // System prompt - initialize from saved bot if available
-  const [systemPrompt, setSystemPrompt] = useState(() => {
-    const initialBot = getInitialBot();
-    return initialBot?.systemPrompt || '';
-  });
-
-  // Training examples - initialize from saved bot if available
-  const [trainingExamples, setTrainingExamplesState] = useState<TrainingExample[]>(() => {
-    const initialBot = getInitialBot();
-    return initialBot?.trainingExamples || [];
-  });
-
-  // Messages - initialize from saved bot messages if available
+  // Messages - still stored locally per bot session
   const [botMessages, setBotMessages] = useState<Record<string, Message[]>>(
     () => getItem(STORAGE_KEYS.CONVERSATIONS + '_bot_messages', {})
   );
-  const [messages, setMessages] = useState<Message[]>(() => {
-    const savedBotId = getItem<string | null>(STORAGE_KEYS.CURRENT_BOT, null);
-    if (savedBotId) {
-      const savedBotMessages = getItem<Record<string, Message[]>>(STORAGE_KEYS.CONVERSATIONS + '_bot_messages', {});
-      return savedBotMessages[savedBotId] || [];
-    }
-    return [];
-  });
+  const [messages, setMessages] = useState<Message[]>([]);
 
-  // Conversations
-  const [conversations, setConversations] = useState<Conversation[]>(() =>
-    getItem(STORAGE_KEYS.CONVERSATIONS, [])
-  );
+  // Conversations - now loaded from API
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] =
     useState<Conversation | null>(null);
 
@@ -120,7 +93,7 @@ export function AppProvider({ children }: AppProviderProps) {
     null
   );
 
-  // UI state
+  // UI state - still use localStorage
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     settings.sidebarCollapsed
   );
@@ -130,36 +103,95 @@ export function AppProvider({ children }: AppProviderProps) {
   const [comparisonMode, setComparisonMode] = useState(() =>
     getItem(STORAGE_KEYS.COMPARISON_MODE, false)
   );
-  const [comparingBots, setComparingBots] = useState<[Bot | null, Bot | null]>(() => {
-    const savedBotIds = getItem<[string | null, string | null]>(STORAGE_KEYS.COMPARING_BOTS, [null, null]);
-    const savedBots = getItem<Bot[]>(STORAGE_KEYS.BOTS, []);
-    return [
-      savedBotIds[0] ? savedBots.find(b => b.id === savedBotIds[0]) || null : null,
-      savedBotIds[1] ? savedBots.find(b => b.id === savedBotIds[1]) || null : null,
-    ];
-  });
+  const [comparingBots, setComparingBots] = useState<[Bot | null, Bot | null]>([null, null]);
 
-  // Persist settings
+  // Load bots from API on mount
+  useEffect(() => {
+    if (!userId) {
+      setIsLoadingBots(false);
+      return;
+    }
+
+    const loadBots = async () => {
+      try {
+        setIsLoadingBots(true);
+        const apiAgents = await agentsApi.list(userId);
+        const loadedBots = apiAgents.map(apiAgentToBot);
+        setBots(loadedBots);
+
+        // Restore current bot selection from localStorage
+        const savedBotId = getItem<string | null>(STORAGE_KEYS.CURRENT_BOT, null);
+        if (savedBotId) {
+          const savedBot = loadedBots.find(b => b.id === savedBotId);
+          if (savedBot) {
+            setCurrentBotValue(savedBot);
+            setSystemPrompt(savedBot.systemPrompt);
+            setParameters(savedBot.defaultParameters);
+            setTrainingExamplesState(savedBot.trainingExamples || []);
+            if (savedBot.preferredModel) {
+              const model = getModelById(savedBot.preferredModel);
+              if (model) setSelectedModelValue(model);
+            }
+            // Load messages for this bot
+            const savedBotMessages = getItem<Record<string, Message[]>>(
+              STORAGE_KEYS.CONVERSATIONS + '_bot_messages', {}
+            );
+            setMessages(savedBotMessages[savedBotId] || []);
+          }
+        }
+
+        // Restore comparing bots
+        const savedComparingIds = getItem<[string | null, string | null]>(
+          STORAGE_KEYS.COMPARING_BOTS, [null, null]
+        );
+        setComparingBots([
+          savedComparingIds[0] ? loadedBots.find(b => b.id === savedComparingIds[0]) || null : null,
+          savedComparingIds[1] ? loadedBots.find(b => b.id === savedComparingIds[1]) || null : null,
+        ]);
+      } catch (error) {
+        console.error('Failed to load bots from API:', error);
+      } finally {
+        setIsLoadingBots(false);
+      }
+    };
+
+    loadBots();
+  }, [userId]);
+
+  // Load chats from API on mount
+  useEffect(() => {
+    if (!userId) {
+      setIsLoadingChats(false);
+      return;
+    }
+
+    const loadChats = async () => {
+      try {
+        setIsLoadingChats(true);
+        const apiChats = await chatsApi.list(userId);
+        const loadedConversations = apiChats.map(chat => apiChatToConversation(chat));
+        setConversations(loadedConversations);
+      } catch (error) {
+        console.error('Failed to load chats from API:', error);
+      } finally {
+        setIsLoadingChats(false);
+      }
+    };
+
+    loadChats();
+  }, [userId]);
+
+  // Persist settings to localStorage
   useEffect(() => {
     setItem(STORAGE_KEYS.SETTINGS, settings);
   }, [settings]);
 
-  // Persist bots
-  useEffect(() => {
-    setItem(STORAGE_KEYS.BOTS, bots);
-  }, [bots]);
-
-  // Persist conversations
-  useEffect(() => {
-    setItem(STORAGE_KEYS.CONVERSATIONS, conversations);
-  }, [conversations]);
-
-  // Persist bot messages
+  // Persist bot messages to localStorage (still local for now)
   useEffect(() => {
     setItem(STORAGE_KEYS.CONVERSATIONS + '_bot_messages', botMessages);
   }, [botMessages]);
 
-  // Persist current bot selection
+  // Persist current bot selection to localStorage
   useEffect(() => {
     setItem(STORAGE_KEYS.CURRENT_BOT, currentBotValue?.id || null);
   }, [currentBotValue]);
@@ -187,23 +219,22 @@ export function AppProvider({ children }: AppProviderProps) {
     if (model) {
       setSelectedModelValue(model);
       // Update the current bot's preferredModel if a bot is selected
-      if (currentBotValue) {
+      if (currentBotValue && userId) {
+        const updatedBot = { ...currentBotValue, preferredModel: modelId, updatedAt: Date.now() };
         setBots((prev) =>
           prev.map((bot) =>
-            bot.id === currentBotValue.id
-              ? { ...bot, preferredModel: modelId, updatedAt: Date.now() }
-              : bot
+            bot.id === currentBotValue.id ? updatedBot : bot
           )
         );
-        setCurrentBotValue((prev) =>
-          prev ? { ...prev, preferredModel: modelId, updatedAt: Date.now() } : null
-        );
+        setCurrentBotValue(updatedBot);
+        // Update in API
+        agentsApi.update(botToApiAgentUpdatePayload(updatedBot, userId)).catch(console.error);
       } else {
         // Save as default model in settings when using Default Assistant
         setSettings((prev) => ({ ...prev, defaultModel: modelId }));
       }
     }
-  }, [currentBotValue]);
+  }, [currentBotValue, userId]);
 
   const addMessage = useCallback(
     (message: Omit<Message, 'id' | 'timestamp'>): Message => {
@@ -218,16 +249,7 @@ export function AppProvider({ children }: AppProviderProps) {
     []
   );
 
-  const updateMessage = useCallback((id: string, content: string) => {
-    setMessages((prev) =>
-      prev.map((msg) => (msg.id === id ? { ...msg, content } : msg))
-    );
-  }, []);
-
-  const deleteMessage = useCallback((id: string) => {
-    setMessages((prev) => prev.filter((msg) => msg.id !== id));
-  }, []);
-
+  // Note: updateMessage and deleteMessage removed - API doesn't support them
   const clearMessages = useCallback(() => {
     setMessages([]);
     setCurrentConversation(null);
@@ -256,7 +278,12 @@ export function AppProvider({ children }: AppProviderProps) {
         setParameters(bot.defaultParameters);
         setTrainingExamplesState(bot.trainingExamples || []);
         if (bot.preferredModel) {
-          setSelectedModel(bot.preferredModel);
+          // Use raw setter to avoid race condition with setSelectedModel
+          // (which would overwrite currentBotValue with stale value)
+          const model = getModelById(bot.preferredModel);
+          if (model) {
+            setSelectedModelValue(model);
+          }
         }
       } else {
         setSystemPrompt('');
@@ -264,133 +291,165 @@ export function AppProvider({ children }: AppProviderProps) {
         setTrainingExamplesState([]);
       }
     },
-    [setSelectedModel, currentBotValue?.id, messages, botMessages]
+    [currentBotValue?.id, messages, botMessages]
   );
 
   const createBot = useCallback(
-    (botData?: Partial<Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>>): Bot => {
-      let newBot: Bot = null!;
+    async (botData?: Partial<Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Bot> => {
+      if (!userId) {
+        throw new Error('User not logged in');
+      }
 
-      setBots((currentBots) => {
-        let botName = botData?.name;
-        if (!botName) {
-          const baseName = 'Default Assistant';
-          const existingNames = new Set(currentBots.map((b) => b.name));
-          existingNames.add(baseName);
+      // Generate bot name
+      let botName = botData?.name;
+      if (!botName) {
+        const baseName = 'Default Assistant';
+        const existingNames = new Set(bots.map((b) => b.name));
+        existingNames.add(baseName);
 
-          let counter = 2;
-          while (existingNames.has(`${baseName} ${counter}`)) {
-            counter++;
-          }
-          botName = `${baseName} ${counter}`;
+        let counter = 2;
+        while (existingNames.has(`${baseName} ${counter}`)) {
+          counter++;
         }
+        botName = `${baseName} ${counter}`;
+      }
 
-        newBot = {
-          name: botName,
-          description: botData?.description ?? '',
-          systemPrompt: botData?.systemPrompt ?? '',
-          preferredModel: botData?.preferredModel,
-          preferredProvider: botData?.preferredProvider,
-          defaultParameters: botData?.defaultParameters ?? {
-            ...DEFAULT_PARAMETERS,
-          },
-          trainingExamples: botData?.trainingExamples ?? [],
-          id: uuidv4(),
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
+      const newBotData: Partial<Bot> = {
+        name: botName,
+        description: botData?.description ?? '',
+        systemPrompt: botData?.systemPrompt ?? '',
+        preferredModel: botData?.preferredModel,
+        preferredProvider: botData?.preferredProvider,
+        defaultParameters: botData?.defaultParameters ?? { ...DEFAULT_PARAMETERS },
+        trainingExamples: botData?.trainingExamples ?? [],
+      };
 
-        return [...currentBots, newBot];
-      });
+      try {
+        // Create via API
+        const apiAgent = await agentsApi.create(botToApiAgentCreatePayload(newBotData, userId));
+        const newBot = apiAgentToBot(apiAgent);
 
-      return newBot;
+        setBots((prev) => [...prev, newBot]);
+        return newBot;
+      } catch (error) {
+        console.error('Failed to create bot via API:', error);
+        throw error;
+      }
     },
-    []
+    [userId, bots]
   );
 
   const updateBot = useCallback(
-    (id: string, updates: Partial<Bot>) => {
+    async (id: string, updates: Partial<Bot>) => {
+      if (!userId) return;
+
+      const currentBot = bots.find(b => b.id === id);
+      if (!currentBot) return;
+
+      const updatedBot = { ...currentBot, ...updates, updatedAt: Date.now() };
+
+      // Update local state immediately
       setBots((prev) =>
         prev.map((bot) =>
-          bot.id === id ? { ...bot, ...updates, updatedAt: Date.now() } : bot
+          bot.id === id ? updatedBot : bot
         )
       );
       if (currentBotValue?.id === id) {
-        setCurrentBotValue((prev) =>
-          prev ? { ...prev, ...updates, updatedAt: Date.now() } : null
+        setCurrentBotValue(updatedBot);
+      }
+
+      // Update via API
+      try {
+        await agentsApi.update(botToApiAgentUpdatePayload(updatedBot, userId));
+      } catch (error) {
+        console.error('Failed to update bot via API:', error);
+        // Revert on error
+        setBots((prev) =>
+          prev.map((bot) =>
+            bot.id === id ? currentBot : bot
+          )
         );
+        if (currentBotValue?.id === id) {
+          setCurrentBotValue(currentBot);
+        }
       }
     },
-    [currentBotValue?.id]
+    [userId, bots, currentBotValue?.id]
   );
 
   const updateSystemPrompt = useCallback(
     (prompt: string) => {
       setSystemPrompt(prompt);
-      if (currentBotValue) {
+      if (currentBotValue && userId) {
+        const updatedBot = { ...currentBotValue, systemPrompt: prompt, updatedAt: Date.now() };
         setBots((prev) =>
           prev.map((bot) =>
-            bot.id === currentBotValue.id
-              ? { ...bot, systemPrompt: prompt, updatedAt: Date.now() }
-              : bot
+            bot.id === currentBotValue.id ? updatedBot : bot
           )
         );
-        setCurrentBotValue((prev) =>
-          prev ? { ...prev, systemPrompt: prompt, updatedAt: Date.now() } : null
-        );
+        setCurrentBotValue(updatedBot);
+        // Update in API
+        agentsApi.update(botToApiAgentUpdatePayload(updatedBot, userId)).catch(console.error);
       }
     },
-    [currentBotValue]
+    [currentBotValue, userId]
   );
 
   const updateTrainingExamples = useCallback(
     (examples: TrainingExample[]) => {
       setTrainingExamplesState(examples);
-      if (currentBotValue) {
+      if (currentBotValue && userId) {
+        const updatedBot = { ...currentBotValue, trainingExamples: examples, updatedAt: Date.now() };
         setBots((prev) =>
           prev.map((bot) =>
-            bot.id === currentBotValue.id
-              ? { ...bot, trainingExamples: examples, updatedAt: Date.now() }
-              : bot
+            bot.id === currentBotValue.id ? updatedBot : bot
           )
         );
-        setCurrentBotValue((prev) =>
-          prev ? { ...prev, trainingExamples: examples, updatedAt: Date.now() } : null
-        );
+        setCurrentBotValue(updatedBot);
+        // Update in API
+        agentsApi.update(botToApiAgentUpdatePayload(updatedBot, userId)).catch(console.error);
       }
     },
-    [currentBotValue]
+    [currentBotValue, userId]
   );
 
   const updateParameters = useCallback(
     (params: GenerationParameters) => {
       setParameters(params);
-      if (currentBotValue) {
+      if (currentBotValue && userId) {
+        const updatedBot = { ...currentBotValue, defaultParameters: params, updatedAt: Date.now() };
         setBots((prev) =>
           prev.map((bot) =>
-            bot.id === currentBotValue.id
-              ? { ...bot, defaultParameters: params, updatedAt: Date.now() }
-              : bot
+            bot.id === currentBotValue.id ? updatedBot : bot
           )
         );
-        setCurrentBotValue((prev) =>
-          prev
-            ? { ...prev, defaultParameters: params, updatedAt: Date.now() }
-            : null
-        );
+        setCurrentBotValue(updatedBot);
+        // Update in API
+        agentsApi.update(botToApiAgentUpdatePayload(updatedBot, userId)).catch(console.error);
       }
     },
-    [currentBotValue]
+    [currentBotValue, userId]
   );
 
   const deleteBot = useCallback(
-    (id: string) => {
+    async (id: string) => {
+      if (!userId) return;
+
+      // Update local state immediately
       setBots((prev) => prev.filter((bot) => bot.id !== id));
       if (currentBotValue?.id === id) {
         setCurrentBotValue(null);
       }
+
+      // Delete via API
+      try {
+        await agentsApi.delete(id, userId);
+      } catch (error) {
+        console.error('Failed to delete bot via API:', error);
+        // Could revert here, but deletion is less critical
+      }
     },
-    [currentBotValue]
+    [userId, currentBotValue]
   );
 
   const reorderBots = useCallback((fromIndex: number, toIndex: number) => {
@@ -400,6 +459,7 @@ export function AppProvider({ children }: AppProviderProps) {
       newBots.splice(toIndex, 0, removed);
       return newBots;
     });
+    // Note: Order is not persisted to API - only local
   }, []);
 
   const exportBot = useCallback(
@@ -407,10 +467,33 @@ export function AppProvider({ children }: AppProviderProps) {
       const bot = bots.find((b) => b.id === id);
       if (!bot) return;
 
+      const exportedBot = {
+        name: bot.name,
+        description: bot.description,
+        systemPrompt: bot.systemPrompt,
+        public: 'false',
+        createdBy: userId || '',
+        defaultParameters: {
+          modelName: bot.preferredModel || '',
+          temperature: bot.defaultParameters.temperature,
+          topP: bot.defaultParameters.topP,
+          maxTokens: bot.defaultParameters.maxTokens,
+          stopSequences: bot.defaultParameters.stopSequences,
+          thinkingMode: bot.defaultParameters.thinkingMode,
+        },
+        trainingExamples: (bot.trainingExamples || []).map((example) => ({
+          _id: example.id,
+          input: example.input,
+          output: example.output,
+          enabled: example.enabled,
+        })),
+        _id: bot.id,
+      };
+
       const exportData = {
         version: 1,
         exportedAt: new Date().toISOString(),
-        bots: [bot],
+        bots: [exportedBot],
       };
 
       const blob = new Blob([JSON.stringify(exportData, null, 2)], {
@@ -425,7 +508,7 @@ export function AppProvider({ children }: AppProviderProps) {
       a.click();
       URL.revokeObjectURL(url);
     },
-    [bots]
+    [bots, userId]
   );
 
   const exportDefaultAssistant = useCallback(() => {
@@ -433,7 +516,18 @@ export function AppProvider({ children }: AppProviderProps) {
       name: 'Default Assistant',
       description: '',
       systemPrompt: '',
-      defaultParameters: { ...DEFAULT_PARAMETERS },
+      public: 'false',
+      createdBy: userId || '',
+      defaultParameters: {
+        modelName: '',
+        temperature: DEFAULT_PARAMETERS.temperature,
+        topP: DEFAULT_PARAMETERS.topP,
+        maxTokens: DEFAULT_PARAMETERS.maxTokens,
+        stopSequences: DEFAULT_PARAMETERS.stopSequences,
+        thinkingMode: DEFAULT_PARAMETERS.thinkingMode,
+      },
+      trainingExamples: [],
+      _id: '',
     };
 
     const exportData = {
@@ -451,15 +545,38 @@ export function AppProvider({ children }: AppProviderProps) {
     a.download = 'default-assistant-bot.json';
     a.click();
     URL.revokeObjectURL(url);
-  }, []);
+  }, [userId]);
 
   const exportAllBots = useCallback(() => {
     if (bots.length === 0) return;
 
+    const exportedBots = bots.map((bot) => ({
+      name: bot.name,
+      description: bot.description,
+      systemPrompt: bot.systemPrompt,
+      public: 'false',
+      createdBy: userId || '',
+      defaultParameters: {
+        modelName: bot.preferredModel || '',
+        temperature: bot.defaultParameters.temperature,
+        topP: bot.defaultParameters.topP,
+        maxTokens: bot.defaultParameters.maxTokens,
+        stopSequences: bot.defaultParameters.stopSequences,
+        thinkingMode: bot.defaultParameters.thinkingMode,
+      },
+      trainingExamples: (bot.trainingExamples || []).map((example) => ({
+        _id: example.id,
+        input: example.input,
+        output: example.output,
+        enabled: example.enabled,
+      })),
+      _id: bot.id,
+    }));
+
     const exportData = {
       version: 1,
       exportedAt: new Date().toISOString(),
-      bots,
+      bots: exportedBots,
     };
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], {
@@ -473,9 +590,13 @@ export function AppProvider({ children }: AppProviderProps) {
     }.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [bots]);
+  }, [bots, userId]);
 
   const importBots = useCallback(async (file: File): Promise<number> => {
+    if (!userId) {
+      throw new Error('User not logged in');
+    }
+
     const text = await file.text();
     const data = JSON.parse(text);
 
@@ -484,21 +605,24 @@ export function AppProvider({ children }: AppProviderProps) {
     }
 
     let importedCount = 0;
-    const newBots: Bot[] = [];
 
     for (const bot of data.bots) {
-      // Validate required fields
       if (!bot.name || !bot.defaultParameters) {
         continue;
       }
 
-      // Create new bot with new ID to avoid conflicts
-      const newBot: Bot = {
-        id: uuidv4(),
+      const trainingExamples = (bot.trainingExamples || []).map((example: { _id?: string; id?: string; input: string; output: string; enabled: boolean }) => ({
+        id: example._id || example.id || uuidv4(),
+        input: example.input,
+        output: example.output,
+        enabled: example.enabled ?? true,
+      }));
+
+      const newBotData: Partial<Bot> = {
         name: bot.name,
         description: bot.description || '',
         systemPrompt: bot.systemPrompt || '',
-        preferredModel: bot.preferredModel,
+        preferredModel: bot.preferredModel || bot.defaultParameters.modelName || undefined,
         preferredProvider: bot.preferredProvider,
         defaultParameters: {
           temperature: bot.defaultParameters.temperature ?? 1,
@@ -507,94 +631,144 @@ export function AppProvider({ children }: AppProviderProps) {
           stopSequences: bot.defaultParameters.stopSequences || [],
           thinkingMode: bot.defaultParameters.thinkingMode ?? false,
         },
-        trainingExamples: bot.trainingExamples || [],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        trainingExamples,
       };
 
-      newBots.push(newBot);
-      importedCount++;
-    }
-
-    if (newBots.length > 0) {
-      setBots((prev) => [...prev, ...newBots]);
+      try {
+        const apiAgent = await agentsApi.create(botToApiAgentCreatePayload(newBotData, userId));
+        const newBot = apiAgentToBot(apiAgent);
+        setBots((prev) => [...prev, newBot]);
+        importedCount++;
+      } catch (error) {
+        console.error('Failed to import bot:', error);
+      }
     }
 
     return importedCount;
-  }, []);
+  }, [userId]);
 
-  const createConversation = useCallback((): Conversation => {
-    const conversation: Conversation = {
-      id: uuidv4(),
+  const createConversation = useCallback(async (): Promise<Conversation> => {
+    if (!userId) {
+      throw new Error('User not logged in');
+    }
+
+    const conversationData: Partial<Conversation> = {
       title: 'New conversation',
       botId: currentBotValue?.id,
-      modelId: selectedModelValue.id,
-      providerId: selectedModelValue.provider,
-      messages: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
     };
-    setConversations((prev) => [conversation, ...prev]);
-    setCurrentConversation(conversation);
-    setMessages([]);
-    return conversation;
-  }, [currentBotValue, selectedModelValue]);
+
+    try {
+      const apiChat = await chatsApi.create(conversationToApiChatCreatePayload(conversationData, userId));
+      const conversation = apiChatToConversation(apiChat);
+
+      // Add local fields
+      conversation.modelId = selectedModelValue.id;
+      conversation.providerId = selectedModelValue.provider;
+
+      setConversations((prev) => [conversation, ...prev]);
+      setCurrentConversation(conversation);
+      setMessages([]);
+      return conversation;
+    } catch (error) {
+      console.error('Failed to create conversation via API:', error);
+      throw error;
+    }
+  }, [userId, currentBotValue, selectedModelValue]);
 
   const loadConversation = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const conversation = conversations.find((c) => c.id === id);
-      if (conversation) {
-        setCurrentConversation(conversation);
-        setMessages(conversation.messages);
+      if (!conversation) return;
+
+      setCurrentConversation(conversation);
+
+      // Load messages from API
+      try {
+        const apiMessages = await messagesApi.list(id);
+        const loadedMessages = apiMessages.map(apiMessageToApp);
+        setMessages(loadedMessages);
+      } catch (error) {
+        console.error('Failed to load messages from API:', error);
+        setMessages([]);
+      }
+
+      if (conversation.modelId) {
         setSelectedModel(conversation.modelId);
-        if (conversation.botId) {
-          const bot = bots.find((b) => b.id === conversation.botId);
-          if (bot) {
-            setCurrentBotValue(bot);
-            setSystemPrompt(bot.systemPrompt);
-            setParameters(bot.defaultParameters);
-          }
+      }
+      if (conversation.botId) {
+        const bot = bots.find((b) => b.id === conversation.botId);
+        if (bot) {
+          setCurrentBotValue(bot);
+          setSystemPrompt(bot.systemPrompt);
+          setParameters(bot.defaultParameters);
         }
       }
     },
     [conversations, bots, setSelectedModel]
   );
 
-  const saveCurrentConversation = useCallback(() => {
-    if (messages.length === 0) return;
+  const saveCurrentConversation = useCallback(async () => {
+    if (messages.length === 0 || !userId) return;
 
     const title = messages[0]?.content.slice(0, 50) || 'New conversation';
 
     if (currentConversation) {
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === currentConversation.id
-            ? { ...c, messages, title, updatedAt: Date.now() }
-            : c
-        )
-      );
+      // Update existing conversation
+      try {
+        await chatsApi.update({
+          _id: currentConversation.id,
+          name: title,
+        });
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === currentConversation.id
+              ? { ...c, title, updatedAt: Date.now() }
+              : c
+          )
+        );
+      } catch (error) {
+        console.error('Failed to update conversation:', error);
+      }
     } else {
-      const conversation: Conversation = {
-        id: uuidv4(),
+      // Create new conversation
+      const conversationData: Partial<Conversation> = {
         title,
         botId: currentBotValue?.id,
-        modelId: selectedModelValue.id,
-        providerId: selectedModelValue.provider,
-        messages,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
       };
-      setConversations((prev) => [conversation, ...prev]);
-      setCurrentConversation(conversation);
+
+      try {
+        const apiChat = await chatsApi.create(conversationToApiChatCreatePayload(conversationData, userId));
+        const conversation = apiChatToConversation(apiChat);
+        conversation.modelId = selectedModelValue.id;
+        conversation.providerId = selectedModelValue.provider;
+
+        setConversations((prev) => [conversation, ...prev]);
+        setCurrentConversation(conversation);
+
+        // Save all messages to the new chat
+        for (const message of messages) {
+          await messagesApi.create(messageToApiCreatePayload(message, conversation.id));
+        }
+      } catch (error) {
+        console.error('Failed to save conversation:', error);
+      }
     }
-  }, [messages, currentConversation, currentBotValue, selectedModelValue]);
+  }, [messages, currentConversation, currentBotValue, selectedModelValue, userId]);
 
   const deleteConversation = useCallback(
-    (id: string) => {
+    async (id: string) => {
+      // Update local state immediately
       setConversations((prev) => prev.filter((c) => c.id !== id));
       if (currentConversation?.id === id) {
         setCurrentConversation(null);
         setMessages([]);
+      }
+
+      // Delete via API
+      try {
+        await chatsApi.delete(id);
+      } catch (error) {
+        console.error('Failed to delete conversation via API:', error);
       }
     },
     [currentConversation]
@@ -660,6 +834,11 @@ export function AppProvider({ children }: AppProviderProps) {
         setMessages(updatedMessages);
       }
 
+      // Save user message to API if we have a current conversation
+      if (currentConversation) {
+        messagesApi.create(messageToApiCreatePayload(userMessage, currentConversation.id)).catch(console.error);
+      }
+
       const assistantMessageId = uuidv4();
       setStreamingMessageId(assistantMessageId);
       if (setTargetStreamingId) setTargetStreamingId(assistantMessageId);
@@ -675,7 +854,6 @@ export function AppProvider({ children }: AppProviderProps) {
           content: m.content,
         }));
 
-        // Combine system prompt with training examples
         const formattedExamples = formatTrainingExamples(currentExamples);
         let finalSystemPrompt = currentSystemPrompt || '';
         if (formattedExamples) {
@@ -715,6 +893,18 @@ export function AppProvider({ children }: AppProviderProps) {
           }
         }
 
+        // Save assistant message to API
+        if (currentConversation) {
+          const assistantMessage: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: fullResponse,
+            timestamp: Date.now(),
+            model: currentModel.name,
+          };
+          messagesApi.create(messageToApiCreatePayload(assistantMessage, currentConversation.id)).catch(console.error);
+        }
+
         if (!targetBot) {
           setTimeout(() => saveCurrentConversation(), 100);
         }
@@ -742,7 +932,7 @@ export function AppProvider({ children }: AppProviderProps) {
         } else {
           setMessages([...updatedMessages, errorMessage]);
         }
-        return { success: true }; // Error shown in chat, so still "success" for clearing input
+        return { success: true };
       } finally {
         setIsLoading(false);
         if (setIsLoadingTarget) setIsLoadingTarget(false);
@@ -759,18 +949,16 @@ export function AppProvider({ children }: AppProviderProps) {
       parameters,
       botMessages,
       saveCurrentConversation,
+      currentConversation,
     ]
   );
 
-  // Wrapped setComparisonMode that sets current bot as first comparing bot when entering
   const handleSetComparisonMode = useCallback(
     (enabled: boolean) => {
       setComparisonMode(enabled);
       if (enabled) {
-        // When entering comparison mode, set the current bot as the first bot
         setComparingBots([currentBotValue, null]);
       } else {
-        // When exiting, clear the comparing bots
         setComparingBots([null, null]);
       }
     },
@@ -791,8 +979,6 @@ export function AppProvider({ children }: AppProviderProps) {
       setTrainingExamples: updateTrainingExamples,
       messages,
       addMessage,
-      updateMessage,
-      deleteMessage,
       clearMessages,
       bots,
       currentBot: currentBotValue,
@@ -812,6 +998,8 @@ export function AppProvider({ children }: AppProviderProps) {
       saveCurrentConversation,
       deleteConversation,
       isLoading,
+      isLoadingBots,
+      isLoadingChats,
       streamingMessageId,
       sendMessage,
       sidebarCollapsed,
@@ -837,8 +1025,6 @@ export function AppProvider({ children }: AppProviderProps) {
       updateTrainingExamples,
       messages,
       addMessage,
-      updateMessage,
-      deleteMessage,
       clearMessages,
       bots,
       currentBotValue,
@@ -858,6 +1044,8 @@ export function AppProvider({ children }: AppProviderProps) {
       saveCurrentConversation,
       deleteConversation,
       isLoading,
+      isLoadingBots,
+      isLoadingChats,
       streamingMessageId,
       sendMessage,
       sidebarCollapsed,

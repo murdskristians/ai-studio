@@ -14,13 +14,11 @@ export interface AppState {
   setTrainingExamples: (examples: TrainingExample[]) => void;
   messages: Message[];
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Message;
-  updateMessage: (id: string, content: string) => void;
-  deleteMessage: (id: string) => void;
   clearMessages: () => void;
   bots: Bot[];
   currentBot: Bot | null;
   setCurrentBot: (bot: Bot | null) => void;
-  createBot: (bot?: Partial<Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>>) => Bot;
+  createBot: (bot?: Partial<Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>>) => Promise<Bot>;
   updateBot: (id: string, updates: Partial<Bot>) => void;
   deleteBot: (id: string) => void;
   reorderBots: (fromIndex: number, toIndex: number) => void;
@@ -30,11 +28,13 @@ export interface AppState {
   importBots: (file: File) => Promise<number>;
   conversations: Conversation[];
   currentConversation: Conversation | null;
-  createConversation: () => Conversation;
+  createConversation: () => Promise<Conversation>;
   loadConversation: (id: string) => void;
   saveCurrentConversation: () => void;
   deleteConversation: (id: string) => void;
   isLoading: boolean;
+  isLoadingBots: boolean;
+  isLoadingChats: boolean;
   streamingMessageId: string | null;
   sendMessage: (
     content: string,

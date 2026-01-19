@@ -259,7 +259,7 @@
   justify-content: center;
   gap: 6px;
   padding: 8px 16px;
-  background-color: var(--accent-blue);
+  background-color: var(--accent-blue) !important;
   color: white;
   border: none;
   border-radius: var(--radius-md);
@@ -267,10 +267,11 @@
   font-weight: 500;
   cursor: pointer;
   transition: background-color var(--transition-fast);
+  opacity: 1;
 }
 
 .ai-studio-example-add-btn:hover:not(:disabled) {
-  background-color: var(--accent-blue-hover);
+  background-color: var(--accent-blue-hover) !important;
 }
 
 .ai-studio-example-add-btn:disabled {

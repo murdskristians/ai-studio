@@ -168,9 +168,12 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
           </div>
 
           <div className="ai-studio-section-list">
-            <button
+            <div
               className={`ai-studio-list-item ${!currentBot ? 'active' : ''}`}
               onClick={() => setCurrentBot(null)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && setCurrentBot(null)}
             >
               <span className="ai-studio-item-icon default">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -192,10 +195,10 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
                   </svg>
                 </button>
               </div>
-            </button>
+            </div>
 
             {bots.map((bot, index) => (
-              <button
+              <div
                 key={bot.id}
                 className={`ai-studio-list-item ${currentBot?.id === bot.id ? 'active' : ''} ${draggedIndex === index ? 'dragging' : ''} ${dragOverIndex === index ? 'drag-over' : ''}`}
                 onClick={() => {
@@ -210,6 +213,9 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, index)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && editingBotId !== bot.id && setCurrentBot(bot)}
               >
                 <span className="ai-studio-item-icon">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -287,7 +293,7 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
                   )}
                   </div>
                 )}
-              </button>
+              </div>
             ))}
           </div>
         </div>
