@@ -39,6 +39,36 @@ function formatTrainingExamples(examples: TrainingExample[]): string {
     .join('\n\n');
 }
 
+// Helper function to build final system prompt with examples
+function buildFinalSystemPrompt(systemPrompt: string, examples: TrainingExample[]): string | undefined {
+  const formattedExamples = formatTrainingExamples(examples);
+  let finalPrompt = systemPrompt || '';
+
+  if (formattedExamples) {
+    finalPrompt = finalPrompt
+      ? `${finalPrompt}\n\n${formattedExamples}`
+      : formattedExamples;
+  }
+
+  return finalPrompt || undefined;
+}
+
+// Helper interface for message context
+interface MessageContext {
+  messages: Message[];
+  systemPrompt: string;
+  examples: TrainingExample[];
+  parameters: GenerationParameters;
+  model: ModelConfig;
+}
+
+// Helper interface for target callbacks
+interface TargetCallbacks {
+  setMessages?: (msgs: Message[]) => void;
+  setStreamingId?: (id: string | null) => void;
+  setLoading?: (loading: boolean) => void;
+}
+
 interface AppProviderProps {
   readonly children: ReactNode;
 }
@@ -781,6 +811,64 @@ export function AppProvider({ children }: AppProviderProps) {
     [botMessages]
   );
 
+  // Helper to get message context based on target bot or current state
+  const getMessageContext = useCallback(
+    (targetBot?: Bot | null): MessageContext => {
+      if (targetBot) {
+        return {
+          messages: botMessages[targetBot.id] || [],
+          systemPrompt: targetBot.systemPrompt,
+          examples: targetBot.trainingExamples || [],
+          parameters: targetBot.defaultParameters,
+          model: getModelById(targetBot.preferredModel || '') || selectedModelValue,
+        };
+      }
+      return {
+        messages,
+        systemPrompt,
+        examples: trainingExamples,
+        parameters,
+        model: selectedModelValue,
+      };
+    },
+    [botMessages, messages, systemPrompt, trainingExamples, parameters, selectedModelValue]
+  );
+
+  // Helper to update messages for target bot or main state
+  const updateMessages = useCallback(
+    (
+      targetBot: Bot | null | undefined,
+      newMessages: Message[],
+      callbacks: TargetCallbacks
+    ) => {
+      if (targetBot) {
+        setBotMessages((prev) => ({ ...prev, [targetBot.id]: newMessages }));
+        callbacks.setMessages?.(newMessages);
+      } else {
+        setMessages(newMessages);
+      }
+    },
+    []
+  );
+
+  // Helper to set loading states
+  const setLoadingStates = useCallback(
+    (loading: boolean, callbacks: TargetCallbacks) => {
+      setIsLoading(loading);
+      callbacks.setLoading?.(loading);
+    },
+    []
+  );
+
+  // Helper to set streaming states
+  const setStreamingStates = useCallback(
+    (messageId: string | null, callbacks: TargetCallbacks) => {
+      setStreamingMessageId(messageId);
+      callbacks.setStreamingId?.(messageId);
+    },
+    []
+  );
+
   const sendMessage = useCallback(
     async (
       content: string,
@@ -789,30 +877,17 @@ export function AppProvider({ children }: AppProviderProps) {
       setTargetStreamingId?: (id: string | null) => void,
       setIsLoadingTarget?: (loading: boolean) => void
     ): Promise<{ success: boolean; error?: string; provider?: string }> => {
-      const currentMessages = targetBot
-        ? botMessages[targetBot.id] || []
-        : messages;
-      const currentSystemPrompt = targetBot
-        ? targetBot.systemPrompt
-        : systemPrompt;
-      const currentExamples = targetBot
-        ? targetBot.trainingExamples || []
-        : trainingExamples;
-      const currentParameters = targetBot
-        ? targetBot.defaultParameters
-        : parameters;
-      const currentModel = targetBot
-        ? getModelById(targetBot.preferredModel || '') || selectedModelValue
-        : selectedModelValue;
+      const callbacks: TargetCallbacks = {
+        setMessages: setTargetMessages,
+        setStreamingId: setTargetStreamingId,
+        setLoading: setIsLoadingTarget,
+      };
 
-      const providerKey = currentModel.provider;
-      const apiKey = settings.apiKeys[providerKey];
+      const ctx = getMessageContext(targetBot);
+      const apiKey = settings.apiKeys[ctx.model.provider];
+
       if (!apiKey) {
-        return {
-          success: false,
-          error: 'api_key_missing',
-          provider: currentModel.provider,
-        };
+        return { success: false, error: 'api_key_missing', provider: ctx.model.provider };
       }
 
       const userMessage: Message = {
@@ -821,86 +896,52 @@ export function AppProvider({ children }: AppProviderProps) {
         content,
         timestamp: Date.now(),
       };
+      const updatedMessages = [...ctx.messages, userMessage];
 
-      const updatedMessages = [...currentMessages, userMessage];
+      updateMessages(targetBot, updatedMessages, callbacks);
 
-      if (targetBot) {
-        setBotMessages((prev) => ({
-          ...prev,
-          [targetBot.id]: updatedMessages,
-        }));
-        if (setTargetMessages) setTargetMessages(updatedMessages);
-      } else {
-        setMessages(updatedMessages);
-      }
-
-      // Save user message to API if we have a current conversation
       if (currentConversation) {
         messagesApi.create(messageToApiCreatePayload(userMessage, currentConversation.id)).catch(console.error);
       }
 
       const assistantMessageId = uuidv4();
-      setStreamingMessageId(assistantMessageId);
-      if (setTargetStreamingId) setTargetStreamingId(assistantMessageId);
-
-      setIsLoading(true);
-      if (setIsLoadingTarget) setIsLoadingTarget(true);
+      setStreamingStates(assistantMessageId, callbacks);
+      setLoadingStates(true, callbacks);
 
       try {
-        const provider = createProvider(currentModel.provider, apiKey);
-
-        const messagesForApi = updatedMessages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        }));
-
-        const formattedExamples = formatTrainingExamples(currentExamples);
-        let finalSystemPrompt = currentSystemPrompt || '';
-        if (formattedExamples) {
-          finalSystemPrompt = finalSystemPrompt
-            ? `${finalSystemPrompt}\n\n${formattedExamples}`
-            : formattedExamples;
-        }
+        const provider = createProvider(ctx.model.provider, apiKey);
+        const messagesForApi = updatedMessages.map((m) => ({ role: m.role, content: m.content }));
+        const finalSystemPrompt = buildFinalSystemPrompt(ctx.systemPrompt, ctx.examples);
 
         const stream = provider.generateStream({
-          model: currentModel.id,
+          model: ctx.model.id,
           messages: messagesForApi,
-          systemPrompt: finalSystemPrompt || undefined,
-          parameters: currentParameters,
+          systemPrompt: finalSystemPrompt,
+          parameters: ctx.parameters,
         });
 
         let fullResponse = '';
         for await (const chunk of stream) {
-          if (chunk.text) {
-            fullResponse += chunk.text;
-            const streamingMessage: Message = {
-              id: assistantMessageId,
-              role: 'assistant',
-              content: fullResponse,
-              timestamp: Date.now(),
-              model: currentModel.name,
-            };
-            if (targetBot) {
-              setBotMessages((prev) => ({
-                ...prev,
-                [targetBot.id]: [...updatedMessages, streamingMessage],
-              }));
-              if (setTargetMessages)
-                setTargetMessages([...updatedMessages, streamingMessage]);
-            } else {
-              setMessages([...updatedMessages, streamingMessage]);
-            }
-          }
+          if (!chunk.text) continue;
+
+          fullResponse += chunk.text;
+          const streamingMessage: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: fullResponse,
+            timestamp: Date.now(),
+            model: ctx.model.name,
+          };
+          updateMessages(targetBot, [...updatedMessages, streamingMessage], callbacks);
         }
 
-        // Save assistant message to API
         if (currentConversation) {
           const assistantMessage: Message = {
             id: assistantMessageId,
             role: 'assistant',
             content: fullResponse,
             timestamp: Date.now(),
-            model: currentModel.name,
+            model: ctx.model.name,
           };
           messagesApi.create(messageToApiCreatePayload(assistantMessage, currentConversation.id)).catch(console.error);
         }
@@ -911,43 +952,27 @@ export function AppProvider({ children }: AppProviderProps) {
         return { success: true };
       } catch (error) {
         console.error('Error generating response:', error);
+        const errorContent = error instanceof Error ? error.message : 'Failed to generate response';
         const errorMessage: Message = {
           id: assistantMessageId,
           role: 'assistant',
-          content: `Error: ${
-            error instanceof Error
-              ? error.message
-              : 'Failed to generate response'
-          }`,
+          content: `Error: ${errorContent}`,
           timestamp: Date.now(),
-          model: currentModel.name,
+          model: ctx.model.name,
         };
-        if (targetBot) {
-          setBotMessages((prev) => ({
-            ...prev,
-            [targetBot.id]: [...updatedMessages, errorMessage],
-          }));
-          if (setTargetMessages)
-            setTargetMessages([...updatedMessages, errorMessage]);
-        } else {
-          setMessages([...updatedMessages, errorMessage]);
-        }
+        updateMessages(targetBot, [...updatedMessages, errorMessage], callbacks);
         return { success: true };
       } finally {
-        setIsLoading(false);
-        if (setIsLoadingTarget) setIsLoadingTarget(false);
-        setStreamingMessageId(null);
-        if (setTargetStreamingId) setTargetStreamingId(null);
+        setLoadingStates(false, callbacks);
+        setStreamingStates(null, callbacks);
       }
     },
     [
       settings.apiKeys,
-      selectedModelValue,
-      messages,
-      systemPrompt,
-      trainingExamples,
-      parameters,
-      botMessages,
+      getMessageContext,
+      updateMessages,
+      setLoadingStates,
+      setStreamingStates,
       saveCurrentConversation,
       currentConversation,
     ]
