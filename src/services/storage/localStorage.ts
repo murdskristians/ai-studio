@@ -51,4 +51,5 @@ export const STORAGE_KEYS = {
   CURRENT_BOT: 'current-bot',
   COMPARISON_MODE: 'comparison-mode',
   COMPARING_BOTS: 'comparing-bots',
+  BOT_ORDER: 'bot-order',
 } as const;

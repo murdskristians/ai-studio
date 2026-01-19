@@ -162,8 +162,24 @@ export function AppProvider({ children }: AppProviderProps) {
           const apiAgent = await agentsApi.create(botToApiAgentCreatePayload(defaultBotData, userId));
           defaultAssistant = apiAgentToBot(apiAgent);
           loadedBots = [defaultAssistant, ...loadedBots];
+        }
+
+        // Apply saved order from localStorage
+        const savedOrder = getItem<string[]>(STORAGE_KEYS.BOT_ORDER, []);
+        if (savedOrder.length > 0) {
+          // Sort bots according to saved order, keeping Default Assistant first
+          const orderMap = new Map(savedOrder.map((id, index) => [id, index]));
+          loadedBots.sort((a, b) => {
+            // Default Assistant always stays first
+            if (a.name === DEFAULT_ASSISTANT_NAME) return -1;
+            if (b.name === DEFAULT_ASSISTANT_NAME) return 1;
+
+            const orderA = orderMap.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+            const orderB = orderMap.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+            return orderA - orderB;
+          });
         } else {
-          // Move Default Assistant to the front of the list
+          // No saved order - ensure Default Assistant is first
           loadedBots = [defaultAssistant, ...loadedBots.filter(b => b.name !== DEFAULT_ASSISTANT_NAME)];
         }
 
@@ -588,9 +604,15 @@ export function AppProvider({ children }: AppProviderProps) {
       const newBots = [...prev];
       const [removed] = newBots.splice(fromIndex, 1);
       newBots.splice(toIndex, 0, removed);
+
+      // Save the new order to localStorage (excluding Default Assistant which is always first)
+      const orderIds = newBots
+        .filter(b => b.name !== DEFAULT_ASSISTANT_NAME)
+        .map(b => b.id);
+      setItem(STORAGE_KEYS.BOT_ORDER, orderIds);
+
       return newBots;
     });
-    // Note: Order is not persisted to API - only local
   }, []);
 
   const exportBot = useCallback(

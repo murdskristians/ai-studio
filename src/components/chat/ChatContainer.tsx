@@ -12,6 +12,7 @@ interface ChatContainerProps {
   streamingMessageId?: string | null;
   hideInput?: boolean;
   onApiKeyError?: (provider: string) => void;
+  onDeleteMessage?: (id: string) => void;
 }
 
 export function ChatContainer({
@@ -21,8 +22,12 @@ export function ChatContainer({
   streamingMessageId,
   hideInput = false,
   onApiKeyError,
+  onDeleteMessage,
 }: ChatContainerProps) {
-  const { updateMessage, deleteMessage, sendMessage } = useApp();
+  const { updateMessage, deleteMessage: contextDeleteMessage, sendMessage } = useApp();
+
+  // Use provided onDeleteMessage or fall back to context's deleteMessage
+  const deleteMessage = onDeleteMessage || contextDeleteMessage;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isInitialMount = useRef(true);
   const prevMessageCount = useRef(messages.length);
