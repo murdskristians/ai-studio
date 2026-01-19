@@ -45,13 +45,10 @@ export function clearAll(): void {
   keys.forEach(key => removeItem(key));
 }
 
-// Storage keys
+// Storage keys - only UI state is stored locally, data is stored in API
 export const STORAGE_KEYS = {
   SETTINGS: 'settings',
-  BOTS: 'bots',
-  CONVERSATIONS: 'conversations',
   CURRENT_BOT: 'current-bot',
-  CURRENT_CONVERSATION: 'current-conversation',
   COMPARISON_MODE: 'comparison-mode',
   COMPARING_BOTS: 'comparing-bots',
 } as const;

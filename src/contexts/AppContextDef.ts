@@ -14,10 +14,12 @@ export interface AppState {
   setTrainingExamples: (examples: TrainingExample[]) => void;
   messages: Message[];
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Message;
+  updateMessage: (id: string, content: string) => void;
+  deleteMessage: (id: string) => void;
   clearMessages: () => void;
   bots: Bot[];
   currentBot: Bot | null;
-  setCurrentBot: (bot: Bot | null) => void;
+  setCurrentBot: (bot: Bot | null) => Promise<void>;
   createBot: (bot?: Partial<Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>>) => Promise<Bot>;
   updateBot: (id: string, updates: Partial<Bot>) => void;
   deleteBot: (id: string) => void;
@@ -30,7 +32,7 @@ export interface AppState {
   currentConversation: Conversation | null;
   createConversation: () => Promise<Conversation>;
   loadConversation: (id: string) => void;
-  saveCurrentConversation: () => void;
+  saveCurrentConversation: (messagesToSave?: Message[]) => void;
   deleteConversation: (id: string) => void;
   isLoading: boolean;
   isLoadingBots: boolean;

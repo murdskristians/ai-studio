@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import { useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type {
   Bot,
@@ -76,6 +76,9 @@ interface AppProviderProps {
 export function AppProvider({ children }: AppProviderProps) {
   const userId = useUserId();
 
+  // Track if initial data has been loaded (to prevent overwriting localStorage during mount)
+  const hasLoadedInitialData = useRef(false);
+
   // Settings - still use localStorage
   const [settings, setSettings] = useState<AppSettings>(() =>
     getItem(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
@@ -106,10 +109,8 @@ export function AppProvider({ children }: AppProviderProps) {
   // Training examples
   const [trainingExamples, setTrainingExamplesState] = useState<TrainingExample[]>([]);
 
-  // Messages - still stored locally per bot session
-  const [botMessages, setBotMessages] = useState<Record<string, Message[]>>(
-    () => getItem(STORAGE_KEYS.CONVERSATIONS + '_bot_messages', {})
-  );
+  // Messages - loaded from API via conversations
+  const [botMessages, setBotMessages] = useState<Record<string, Message[]>>({});
   const [messages, setMessages] = useState<Message[]>([]);
 
   // Conversations - now loaded from API
@@ -151,6 +152,7 @@ export function AppProvider({ children }: AppProviderProps) {
 
         // Restore current bot selection from localStorage
         const savedBotId = getItem<string | null>(STORAGE_KEYS.CURRENT_BOT, null);
+
         if (savedBotId) {
           const savedBot = loadedBots.find(b => b.id === savedBotId);
           if (savedBot) {
@@ -162,11 +164,6 @@ export function AppProvider({ children }: AppProviderProps) {
               const model = getModelById(savedBot.preferredModel);
               if (model) setSelectedModelValue(model);
             }
-            // Load messages for this bot
-            const savedBotMessages = getItem<Record<string, Message[]>>(
-              STORAGE_KEYS.CONVERSATIONS + '_bot_messages', {}
-            );
-            setMessages(savedBotMessages[savedBotId] || []);
           }
         }
 
@@ -178,6 +175,8 @@ export function AppProvider({ children }: AppProviderProps) {
           savedComparingIds[0] ? loadedBots.find(b => b.id === savedComparingIds[0]) || null : null,
           savedComparingIds[1] ? loadedBots.find(b => b.id === savedComparingIds[1]) || null : null,
         ]);
+        // Mark initial data as loaded
+        hasLoadedInitialData.current = true;
       } catch (error) {
         console.error('Failed to load bots from API:', error);
       } finally {
@@ -188,7 +187,7 @@ export function AppProvider({ children }: AppProviderProps) {
     loadBots();
   }, [userId]);
 
-  // Load chats from API on mount
+  // Load chats from API on mount and restore last conversation with messages
   useEffect(() => {
     if (!userId) {
       setIsLoadingChats(false);
@@ -201,6 +200,42 @@ export function AppProvider({ children }: AppProviderProps) {
         const apiChats = await chatsApi.list(userId);
         const loadedConversations = apiChats.map(chat => apiChatToConversation(chat));
         setConversations(loadedConversations);
+
+        // Find the most recent conversation for the selected bot
+        const currentBotId = getItem<string | null>(STORAGE_KEYS.CURRENT_BOT, null);
+        let conversationToLoad: Conversation | undefined;
+
+        if (currentBotId) {
+          // Bot is selected - only load conversations belonging to that bot
+          const botConversations = loadedConversations.filter(c => c.botId === currentBotId);
+          if (botConversations.length > 0) {
+            conversationToLoad = botConversations.sort((a, b) => b.createdAt - a.createdAt)[0];
+          }
+          // If no conversations for this bot, leave conversationToLoad as undefined (show empty)
+        } else {
+          // Default Assistant selected - only load conversations without a botId
+          const defaultConversations = loadedConversations.filter(c => !c.botId);
+          if (defaultConversations.length > 0) {
+            conversationToLoad = defaultConversations.sort((a, b) => b.createdAt - a.createdAt)[0];
+          }
+        }
+
+        if (conversationToLoad) {
+          setCurrentConversation(conversationToLoad);
+          // Load messages for this conversation from API
+          try {
+            const apiMessages = await messagesApi.list(conversationToLoad.id);
+            const loadedMessages = apiMessages.map(apiMessageToApp);
+            setMessages(loadedMessages);
+
+            // Also set the current bot if the conversation belongs to one
+            if (conversationToLoad.botId) {
+              // Bot will be set by the bots loading effect
+            }
+          } catch (error) {
+            console.error('Failed to load messages from API:', error);
+          }
+        }
       } catch (error) {
         console.error('Failed to load chats from API:', error);
       } finally {
@@ -216,13 +251,19 @@ export function AppProvider({ children }: AppProviderProps) {
     setItem(STORAGE_KEYS.SETTINGS, settings);
   }, [settings]);
 
-  // Persist bot messages to localStorage (still local for now)
+  // Sync current messages to botMessages when messages change (for comparison mode)
   useEffect(() => {
-    setItem(STORAGE_KEYS.CONVERSATIONS + '_bot_messages', botMessages);
-  }, [botMessages]);
+    if (messages.length === 0) return;
+    const currentBotId = currentBotValue?.id ?? 'default';
+    setBotMessages((prev) => {
+      if (prev[currentBotId] === messages) return prev;
+      return { ...prev, [currentBotId]: messages };
+    });
+  }, [messages, currentBotValue?.id]);
 
-  // Persist current bot selection to localStorage
+  // Persist current bot selection to localStorage (only after initial load to avoid overwriting)
   useEffect(() => {
+    if (!hasLoadedInitialData.current) return;
     setItem(STORAGE_KEYS.CURRENT_BOT, currentBotValue?.id || null);
   }, [currentBotValue]);
 
@@ -279,17 +320,31 @@ export function AppProvider({ children }: AppProviderProps) {
     []
   );
 
-  // Note: updateMessage and deleteMessage removed - API doesn't support them
+  // Update a message (local only - API doesn't support message updates)
+  const updateMessage = useCallback((id: string, content: string) => {
+    setMessages((prev) =>
+      prev.map((msg) => (msg.id === id ? { ...msg, content } : msg))
+    );
+  }, []);
+
+  // Delete a message
+  const deleteMessage = useCallback((id: string) => {
+    setMessages((prev) => prev.filter((msg) => msg.id !== id));
+    // Also delete from API
+    messagesApi.delete(id).catch(console.error);
+  }, []);
+
   const clearMessages = useCallback(() => {
     setMessages([]);
     setCurrentConversation(null);
   }, []);
 
   const setCurrentBot = useCallback(
-    (bot: Bot | null) => {
+    async (bot: Bot | null) => {
       const currentBotId = currentBotValue?.id ?? 'default';
       const newBotId = bot?.id ?? 'default';
 
+      // Save current messages to botMessages cache
       if (currentBotId !== newBotId) {
         setBotMessages((prev) => ({
           ...prev,
@@ -298,18 +353,13 @@ export function AppProvider({ children }: AppProviderProps) {
       }
 
       setCurrentBotValue(bot);
-      setCurrentConversation(null);
 
-      const newBotMessages = botMessages[newBotId] ?? [];
-      setMessages(newBotMessages);
-
+      // Update bot settings
       if (bot) {
         setSystemPrompt(bot.systemPrompt);
         setParameters(bot.defaultParameters);
         setTrainingExamplesState(bot.trainingExamples || []);
         if (bot.preferredModel) {
-          // Use raw setter to avoid race condition with setSelectedModel
-          // (which would overwrite currentBotValue with stale value)
           const model = getModelById(bot.preferredModel);
           if (model) {
             setSelectedModelValue(model);
@@ -320,8 +370,32 @@ export function AppProvider({ children }: AppProviderProps) {
         setParameters(DEFAULT_PARAMETERS);
         setTrainingExamplesState([]);
       }
+
+      // Try to load the most recent conversation for this bot from API
+      const botConversations = conversations.filter(c =>
+        bot ? c.botId === bot.id : !c.botId
+      );
+
+      if (botConversations.length > 0) {
+        const mostRecent = botConversations.sort((a, b) => b.createdAt - a.createdAt)[0];
+        setCurrentConversation(mostRecent);
+
+        // Load messages from API
+        try {
+          const apiMessages = await messagesApi.list(mostRecent.id);
+          const loadedMessages = apiMessages.map(apiMessageToApp);
+          setMessages(loadedMessages);
+        } catch (error) {
+          console.error('Failed to load messages:', error);
+          setMessages([]);
+        }
+      } else {
+        // No conversation for this bot, start fresh
+        setCurrentConversation(null);
+        setMessages([]);
+      }
     },
-    [currentBotValue?.id, messages, botMessages]
+    [currentBotValue?.id, messages, conversations]
   );
 
   const createBot = useCallback(
@@ -737,13 +811,17 @@ export function AppProvider({ children }: AppProviderProps) {
     [conversations, bots, setSelectedModel]
   );
 
-  const saveCurrentConversation = useCallback(async () => {
-    if (messages.length === 0 || !userId) return;
+  const saveCurrentConversation = useCallback(async (messagesToSave?: Message[]) => {
+    // Use passed messages or fall back to state (passed messages avoid stale closure issues)
+    const msgsToSave = messagesToSave || messages;
+    if (msgsToSave.length === 0 || !userId) {
+      return;
+    }
 
-    const title = messages[0]?.content.slice(0, 50) || 'New conversation';
+    const title = msgsToSave[0]?.content.slice(0, 50) || 'New conversation';
 
     if (currentConversation) {
-      // Update existing conversation
+      // Update existing conversation title
       try {
         await chatsApi.update({
           _id: currentConversation.id,
@@ -760,7 +838,7 @@ export function AppProvider({ children }: AppProviderProps) {
         console.error('Failed to update conversation:', error);
       }
     } else {
-      // Create new conversation
+      // Create new conversation and save messages
       const conversationData: Partial<Conversation> = {
         title,
         botId: currentBotValue?.id,
@@ -776,7 +854,7 @@ export function AppProvider({ children }: AppProviderProps) {
         setCurrentConversation(conversation);
 
         // Save all messages to the new chat
-        for (const message of messages) {
+        for (const message of msgsToSave) {
           await messagesApi.create(messageToApiCreatePayload(message, conversation.id));
         }
       } catch (error) {
@@ -900,6 +978,7 @@ export function AppProvider({ children }: AppProviderProps) {
 
       updateMessages(targetBot, updatedMessages, callbacks);
 
+      // Save user message to existing conversation (new conversations save all messages at once)
       if (currentConversation) {
         messagesApi.create(messageToApiCreatePayload(userMessage, currentConversation.id)).catch(console.error);
       }
@@ -935,19 +1014,23 @@ export function AppProvider({ children }: AppProviderProps) {
           updateMessages(targetBot, [...updatedMessages, streamingMessage], callbacks);
         }
 
+        const assistantMessage: Message = {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: fullResponse,
+          timestamp: Date.now(),
+          model: ctx.model.name,
+        };
+        const finalMessages = [...updatedMessages, assistantMessage];
+
+        // Save assistant message to existing conversation
         if (currentConversation) {
-          const assistantMessage: Message = {
-            id: assistantMessageId,
-            role: 'assistant',
-            content: fullResponse,
-            timestamp: Date.now(),
-            model: ctx.model.name,
-          };
           messagesApi.create(messageToApiCreatePayload(assistantMessage, currentConversation.id)).catch(console.error);
         }
 
+        // For new conversations, save everything at once
         if (!targetBot) {
-          setTimeout(() => saveCurrentConversation(), 100);
+          setTimeout(() => saveCurrentConversation(finalMessages), 100);
         }
         return { success: true };
       } catch (error) {
@@ -1004,6 +1087,8 @@ export function AppProvider({ children }: AppProviderProps) {
       setTrainingExamples: updateTrainingExamples,
       messages,
       addMessage,
+      updateMessage,
+      deleteMessage,
       clearMessages,
       bots,
       currentBot: currentBotValue,
@@ -1050,6 +1135,8 @@ export function AppProvider({ children }: AppProviderProps) {
       updateTrainingExamples,
       messages,
       addMessage,
+      updateMessage,
+      deleteMessage,
       clearMessages,
       bots,
       currentBotValue,

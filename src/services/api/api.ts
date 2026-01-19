@@ -136,4 +136,11 @@ export const messagesApi = {
   create: async (payload: ApiMessageCreatePayload): Promise<ApiMessage> => {
     return post<ApiMessage>('messages-create', payload);
   },
+
+  /**
+   * Delete a message
+   */
+  delete: async (messageId: string): Promise<void> => {
+    await post<unknown>('messages-delete', { _id: messageId });
+  },
 };
