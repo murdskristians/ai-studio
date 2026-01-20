@@ -166,6 +166,12 @@ export const ParameterPanel = forwardRef<ParameterPanelHandle, ParameterPanelPro
                 className="ai-studio-bot-name-input"
                 value={currentBot.name}
                 onChange={(e) => onBotNameChange?.(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
               />
             ) : (
               <span className="ai-studio-bot-name-text">Default Assistant</span>

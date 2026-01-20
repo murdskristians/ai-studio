@@ -19,22 +19,23 @@ export interface AppState {
   clearMessages: () => void;
   bots: Bot[];
   currentBot: Bot | null;
-  setCurrentBot: (bot: Bot | null) => void;
-  createBot: (bot?: Partial<Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>>) => Bot;
+  setCurrentBot: (bot: Bot | null) => Promise<void>;
+  createBot: (bot?: Partial<Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>>) => Promise<Bot>;
   updateBot: (id: string, updates: Partial<Bot>) => void;
   deleteBot: (id: string) => void;
   reorderBots: (fromIndex: number, toIndex: number) => void;
   exportBot: (id: string) => void;
-  exportDefaultAssistant: () => void;
   exportAllBots: () => void;
   importBots: (file: File) => Promise<number>;
   conversations: Conversation[];
   currentConversation: Conversation | null;
-  createConversation: () => Conversation;
+  createConversation: () => Promise<Conversation>;
   loadConversation: (id: string) => void;
-  saveCurrentConversation: () => void;
+  saveCurrentConversation: (messagesToSave?: Message[]) => void;
   deleteConversation: (id: string) => void;
   isLoading: boolean;
+  isLoadingBots: boolean;
+  isLoadingChats: boolean;
   streamingMessageId: string | null;
   sendMessage: (
     content: string,
@@ -43,6 +44,7 @@ export interface AppState {
     setTargetStreamingId?: (id: string | null) => void,
     setIsLoadingTarget?: (loading: boolean) => void
   ) => Promise<{ success: boolean; error?: string; provider?: string }>;
+  cancelSendMessage: () => void;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
   parameterPanelCollapsed: boolean;

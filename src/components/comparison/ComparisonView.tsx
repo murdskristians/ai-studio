@@ -1,35 +1,52 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { useApp } from '../../contexts';
+import { useUserId } from '../../contexts/useUser';
 import { ParameterPanel } from '../config';
 import { ChatInput } from '../chat/ChatInput';
 import { ComparisonChatSection } from './ComparisonChatSection';
 import { DEFAULT_PARAMETERS } from '../../types/parameters';
 import { MODELS } from '../../constants/models';
-import type { Bot, Message, GenerationParameters, TrainingExample } from '../../types';
+import {
+  chatsApi,
+  messagesApi,
+  apiChatToConversation,
+  conversationToApiChatCreatePayload,
+  apiMessageToApp,
+} from '../../services/api';
+import type { Bot, Message, GenerationParameters, TrainingExample, Conversation } from '../../types';
 import './ComparisonView.css';
 
 export function ComparisonView() {
+  const userId = useUserId();
   const {
     bots,
     comparingBots,
     setComparingBots,
-    setCurrentBot,
-    sendMessage,
     updateBot,
     setComparisonMode,
-    getBotMessages,
-    settings,
+    conversations,
   } = useApp();
 
+  // Database conversations for each panel
+  const [conversation1, setConversation1] = useState<Conversation | null>(null);
+  const [conversation2, setConversation2] = useState<Conversation | null>(null);
+
+  // Messages loaded from database
   const [bot1Messages, setBot1Messages] = useState<Message[]>([]);
   const [bot2Messages, setBot2Messages] = useState<Message[]>([]);
+
+  // Loading and streaming states
   const [isLoading1, setIsLoading1] = useState(false);
   const [isLoading2, setIsLoading2] = useState(false);
-  const [streamingId1, setStreamingId1] = useState<string | null>(null);
-  const [streamingId2, setStreamingId2] = useState<string | null>(null);
-  const [selectedBot1, setSelectedBot1] = useState<string>(comparingBots[0]?.id || 'default');
-  const [selectedBot2, setSelectedBot2] = useState<string>(comparingBots[1]?.id || 'default');
+  const [streamingId1] = useState<string | null>(null);
+  const [streamingId2] = useState<string | null>(null);
 
+  // Selected bot IDs
+  const [selectedBot1, setSelectedBot1] = useState<string>(comparingBots[0]?.id || '');
+  const [selectedBot2, setSelectedBot2] = useState<string>(comparingBots[1]?.id || '');
+
+  // Collapse states for UI sections
   const [parameters1Collapsed, setParameters1Collapsed] = useState(true);
   const [systemPrompt1Collapsed, setSystemPrompt1Collapsed] = useState(true);
   const [examples1Collapsed, setExamples1Collapsed] = useState(true);
@@ -40,19 +57,72 @@ export function ComparisonView() {
   const [examples2Collapsed, setExamples2Collapsed] = useState(true);
   const [chat2Collapsed, setChat2Collapsed] = useState(false);
 
+  // Helper to update state for a specific panel index
+  const updatePanelState = useCallback((
+    index: 0 | 1,
+    conversation: Conversation | null,
+    messages: Message[]
+  ) => {
+    if (index === 0) {
+      setConversation1(conversation);
+      setBot1Messages(messages);
+    } else {
+      setConversation2(conversation);
+      setBot2Messages(messages);
+    }
+  }, []);
+
+  // Load conversation and messages for a bot from the database
+  const loadBotConversation = useCallback(async (bot: Bot | null, index: 0 | 1) => {
+    if (!bot) {
+      updatePanelState(index, null, []);
+      return;
+    }
+
+    // Find existing conversation for this bot from global conversations
+    const botConversations = conversations.filter(c => c.botId === bot.id);
+    const mostRecentConversation = botConversations.length > 0
+      ? [...botConversations].sort((a, b) => b.createdAt - a.createdAt)[0]
+      : null;
+
+    if (!mostRecentConversation) {
+      // No existing conversation - will create one when sending first message
+      updatePanelState(index, null, []);
+      return;
+    }
+
+    // Load messages from API
+    try {
+      const apiMessages = await messagesApi.list(mostRecentConversation.id);
+      const loadedMessages = apiMessages.map(apiMessageToApp);
+      updatePanelState(index, mostRecentConversation, loadedMessages);
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+      updatePanelState(index, mostRecentConversation, []);
+    }
+  }, [conversations, updatePanelState]);
+
+  // Load conversations when comparing bots change
   useEffect(() => {
-    const bot1Id = comparingBots[0]?.id || 'default';
-    const bot2Id = comparingBots[1]?.id || 'default';
+    const bot1Id = comparingBots[0]?.id || '';
+    const bot2Id = comparingBots[1]?.id || '';
     setSelectedBot1(bot1Id);
     setSelectedBot2(bot2Id);
-    // Load existing messages for the bots
+
+    // Load existing conversations for the bots
     if (comparingBots[0]) {
-      setBot1Messages(getBotMessages(comparingBots[0].id));
+      loadBotConversation(comparingBots[0], 0);
+    } else {
+      setConversation1(null);
+      setBot1Messages([]);
     }
     if (comparingBots[1]) {
-      setBot2Messages(getBotMessages(comparingBots[1].id));
+      loadBotConversation(comparingBots[1], 1);
+    } else {
+      setConversation2(null);
+      setBot2Messages([]);
     }
-  }, [comparingBots, getBotMessages]);
+  }, [comparingBots, loadBotConversation]);
 
   const getBotParams = (bot: Bot | null) => {
     return bot?.defaultParameters || DEFAULT_PARAMETERS;
@@ -67,7 +137,7 @@ export function ComparisonView() {
   };
 
   const getBotModel = (bot: Bot | null): string => {
-    return bot?.preferredModel || settings.defaultModel || MODELS[0].id;
+    return bot?.preferredModel || MODELS[0].id;
   };
 
   const handleModelChange = (index: 0 | 1, modelId: string) => {
@@ -160,30 +230,23 @@ export function ComparisonView() {
     }
   };
 
-  const handleSelectBot = (index: 0 | 1, botId: string) => {
+  const handleSelectBot = async (index: 0 | 1, botId: string) => {
     const newBots: [Bot | null, Bot | null] = [...comparingBots];
 
-    let botToSet: Bot | null = null;
-    if (botId === 'default') {
-      botToSet = null;
-    } else if (botId !== '') {
-      botToSet = bots.find((b) => b.id === botId) || null;
-    }
+    // Find the bot by ID, or set to null if empty selection
+    const botToSet = botId === '' ? null : bots.find((b) => b.id === botId) || null;
 
     newBots[index] = botToSet;
     setComparingBots(newBots);
 
     if (index === 0) {
       setSelectedBot1(botId);
-      // Load existing messages for this bot
-      const existingMessages = botId !== 'default' && botId !== '' ? getBotMessages(botId) : [];
-      setBot1Messages(existingMessages);
     } else {
       setSelectedBot2(botId);
-      // Load existing messages for this bot
-      const existingMessages = botId !== 'default' && botId !== '' ? getBotMessages(botId) : [];
-      setBot2Messages(existingMessages);
     }
+
+    // Load conversation from database
+    await loadBotConversation(botToSet, index);
   };
 
   const handleParametersChange = (index: 0 | 1, params: GenerationParameters) => {
@@ -228,34 +291,107 @@ export function ComparisonView() {
 
   const handleSendMessage = async (content: string) => {
     if (!comparingBots[0] && !comparingBots[1]) return;
+    if (!userId) return;
 
     const sendToBot = async (
       bot: Bot | null,
-      _index: 0 | 1,
-      _messages: Message[],
-      setMessages: (msgs: Message[]) => void,
-      setIsLoading: (loading: boolean) => void,
-      setStreamingId: (id: string | null) => void
+      currentMessages: Message[],
+      setMessages: React.Dispatch<React.SetStateAction<Message[]>>,
+      currentConversation: Conversation | null,
+      setConversation: React.Dispatch<React.SetStateAction<Conversation | null>>,
+      setIsLoading: (loading: boolean) => void
     ) => {
       if (!bot) return;
 
       setIsLoading(true);
+
       try {
-        setCurrentBot(bot);
-        await sendMessage(content, bot, setMessages, setStreamingId, setIsLoading);
+        // Create or get conversation - chatId is required for the backend
+        let conversationToUse = currentConversation;
+        if (!conversationToUse) {
+          // Create a new conversation in the database
+          const conversationData = {
+            title: content.slice(0, 50),
+            botId: bot.id,
+          };
+          const apiChat = await chatsApi.create(conversationToApiChatCreatePayload(conversationData, userId));
+          conversationToUse = apiChatToConversation(apiChat);
+          setConversation(conversationToUse);
+        }
+
+        // Create user message for local state
+        const userMessage: Message = {
+          id: uuidv4(),
+          role: 'user',
+          content,
+          timestamp: Date.now(),
+        };
+
+        // Update local state with user message
+        const updatedMessages = [...currentMessages, userMessage];
+        setMessages(updatedMessages);
+
+        // Send message to backend - backend handles:
+        // - Calling Gemini API
+        // - Saving user message to database
+        // - Saving AI response to database
+        const response = await chatsApi.send({
+          message: content,
+          agentId: bot.id,
+          chatId: conversationToUse.id,
+        });
+
+        // Create assistant message for local state
+        const assistantMessage: Message = {
+          id: uuidv4(),
+          role: 'assistant',
+          content: response.response,
+          timestamp: Date.now(),
+        };
+
+        // Update local state with assistant message
+        setMessages([...updatedMessages, assistantMessage]);
+      } catch (error) {
+        console.error('Error generating response:', error);
+        const errorMessage: Message = {
+          id: uuidv4(),
+          role: 'assistant',
+          content: `Error: ${error instanceof Error ? error.message : 'Failed to generate response'}`,
+          timestamp: Date.now(),
+        };
+        setMessages(prev => [...prev, errorMessage]);
       } finally {
         setIsLoading(false);
       }
     };
 
     await Promise.all([
-      sendToBot(comparingBots[0], 0, bot1Messages, setBot1Messages, setIsLoading1, setStreamingId1),
-      sendToBot(comparingBots[1], 1, bot2Messages, setBot2Messages, setIsLoading2, setStreamingId2),
+      sendToBot(comparingBots[0], bot1Messages, setBot1Messages, conversation1, setConversation1, setIsLoading1),
+      sendToBot(comparingBots[1], bot2Messages, setBot2Messages, conversation2, setConversation2, setIsLoading2),
     ]);
   };
 
   const handleBack = () => {
     setComparisonMode(false);
+  };
+
+  // Delete message from database and local state
+  const handleDeleteMessage1 = async (id: string) => {
+    setBot1Messages(prev => prev.filter(msg => msg.id !== id));
+    try {
+      await messagesApi.delete(id);
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+    }
+  };
+
+  const handleDeleteMessage2 = async (id: string) => {
+    setBot2Messages(prev => prev.filter(msg => msg.id !== id));
+    try {
+      await messagesApi.delete(id);
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+    }
   };
 
   return (
@@ -287,7 +423,6 @@ export function ComparisonView() {
               onChange={(e) => handleSelectBot(0, e.target.value)}
             >
               <option value="">Select Bot 1</option>
-              <option value="default">Default Assistant</option>
               {bots.map((bot) => (
                 <option key={bot.id} value={bot.id}>
                   {bot.name}
@@ -302,7 +437,7 @@ export function ComparisonView() {
               </div>
             ) : (
               <>
-                <div className={`ai-studio-comparison-config ${!parameters1Collapsed || !systemPrompt1Collapsed || !examples1Collapsed ? 'has-expanded' : ''}`}>
+                <div className={`ai-studio-comparison-config ${parameters1Collapsed && systemPrompt1Collapsed && examples1Collapsed ? '' : 'has-expanded'}`}>
                   <ParameterPanel
                     parameters={getBotParams(comparingBots[0])}
                     onChange={(params) => handleParametersChange(0, params)}
@@ -324,13 +459,14 @@ export function ComparisonView() {
                     onModelChange={(modelId) => handleModelChange(0, modelId)}
                   />
                 </div>
-                <div className={`ai-studio-comparison-chat-section-wrapper ${!chat1Collapsed ? 'expanded' : ''}`}>
+                <div className={`ai-studio-comparison-chat-section-wrapper ${chat1Collapsed ? '' : 'expanded'}`}>
                   <ComparisonChatSection
                     messages={bot1Messages}
                     isLoading={isLoading1}
                     streamingMessageId={streamingId1}
                     collapsed={chat1Collapsed}
                     onToggleCollapse={() => handleChatToggle(0)}
+                    onDeleteMessage={handleDeleteMessage1}
                   />
                 </div>
               </>
@@ -348,7 +484,6 @@ export function ComparisonView() {
               onChange={(e) => handleSelectBot(1, e.target.value)}
             >
               <option value="">Select Bot 2</option>
-              <option value="default">Default Assistant</option>
               {bots.map((bot) => (
                 <option key={bot.id} value={bot.id}>
                   {bot.name}
@@ -363,7 +498,7 @@ export function ComparisonView() {
               </div>
             ) : (
               <>
-                <div className={`ai-studio-comparison-config ${!parameters2Collapsed || !systemPrompt2Collapsed || !examples2Collapsed ? 'has-expanded' : ''}`}>
+                <div className={`ai-studio-comparison-config ${parameters2Collapsed && systemPrompt2Collapsed && examples2Collapsed ? '' : 'has-expanded'}`}>
                   <ParameterPanel
                     parameters={getBotParams(comparingBots[1])}
                     onChange={(params) => handleParametersChange(1, params)}
@@ -385,13 +520,14 @@ export function ComparisonView() {
                     onModelChange={(modelId) => handleModelChange(1, modelId)}
                   />
                 </div>
-                <div className={`ai-studio-comparison-chat-section-wrapper ${!chat2Collapsed ? 'expanded' : ''}`}>
+                <div className={`ai-studio-comparison-chat-section-wrapper ${chat2Collapsed ? '' : 'expanded'}`}>
                   <ComparisonChatSection
                     messages={bot2Messages}
                     isLoading={isLoading2}
                     streamingMessageId={streamingId2}
                     collapsed={chat2Collapsed}
                     onToggleCollapse={() => handleChatToggle(1)}
+                    onDeleteMessage={handleDeleteMessage2}
                   />
                 </div>
               </>

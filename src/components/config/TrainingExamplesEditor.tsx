@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { TrainingExample } from '../../types';
+import { Modal, Button } from '../ui';
 import './TrainingExamplesEditor.css';
 
 interface TrainingExamplesEditorProps {
@@ -18,6 +19,9 @@ export function TrainingExamplesEditor({
   const [newInput, setNewInput] = useState('');
   const [newOutput, setNewOutput] = useState('');
   const [expandedExamples, setExpandedExamples] = useState<Set<string>>(new Set());
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const exampleToDelete = deleteConfirmId ? examples.find(ex => ex.id === deleteConfirmId) : null;
 
   const handleAddExample = () => {
     if (newInput.trim() && newOutput.trim()) {
@@ -34,7 +38,14 @@ export function TrainingExamplesEditor({
   };
 
   const handleRemoveExample = (id: string) => {
-    onChange(examples.filter((ex) => ex.id !== id));
+    setDeleteConfirmId(id);
+  };
+
+  const confirmRemoveExample = () => {
+    if (deleteConfirmId) {
+      onChange(examples.filter((ex) => ex.id !== deleteConfirmId));
+      setDeleteConfirmId(null);
+    }
   };
 
   const handleToggleExample = (id: string) => {
@@ -263,6 +274,43 @@ export function TrainingExamplesEditor({
           </div>
         </div>
       )}
+
+      <Modal
+        isOpen={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        title="Delete Example"
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setDeleteConfirmId(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={confirmRemoveExample}
+            >
+              Delete
+            </Button>
+          </>
+        }
+      >
+        <p>Are you sure you want to delete this example?</p>
+        {exampleToDelete && (
+          <div className="ai-studio-delete-preview">
+            <div className="ai-studio-delete-preview-row">
+              <strong>Input:</strong>
+              <span className="ai-studio-delete-preview-text">{exampleToDelete.input}</span>
+            </div>
+            <div className="ai-studio-delete-preview-row">
+              <strong>Output:</strong>
+              <span className="ai-studio-delete-preview-text">{exampleToDelete.output}</span>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

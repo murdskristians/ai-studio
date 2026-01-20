@@ -26,7 +26,6 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
     sidebarCollapsed,
     setSidebarCollapsed,
     exportBot,
-    exportDefaultAssistant,
     exportAllBots,
     updateBot,
     reorderBots,
@@ -168,34 +167,10 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
           </div>
 
           <div className="ai-studio-section-list">
-            <button
-              className={`ai-studio-list-item ${!currentBot ? 'active' : ''}`}
-              onClick={() => setCurrentBot(null)}
-            >
-              <span className="ai-studio-item-icon default">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 1L10 5H14L11 8L12 13L8 10.5L4 13L5 8L2 5H6L8 1Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-                </svg>
-              </span>
-              <span className="ai-studio-item-text">Default Assistant</span>
-              <div className="ai-studio-item-actions">
-                <button
-                  className="ai-studio-item-action"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    exportDefaultAssistant();
-                  }}
-                  title="Export bot"
-                >
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path d="M6 2V8M6 8L3.5 5.5M6 8L8.5 5.5M2 10H10" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              </div>
-            </button>
-
-            {bots.map((bot, index) => (
-              <button
+            {bots.map((bot, index) => {
+              const isDefaultAssistant = bot.name === 'Default Assistant';
+              return (
+              <div
                 key={bot.id}
                 className={`ai-studio-list-item ${currentBot?.id === bot.id ? 'active' : ''} ${draggedIndex === index ? 'dragging' : ''} ${dragOverIndex === index ? 'drag-over' : ''}`}
                 onClick={() => {
@@ -203,21 +178,30 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
                     setCurrentBot(bot);
                   }
                 }}
-                onDoubleClick={(e) => handleDoubleClick(e, bot.id, bot.name)}
-                draggable={editingBotId !== bot.id}
+                onDoubleClick={(e) => !isDefaultAssistant && handleDoubleClick(e, bot.id, bot.name)}
+                draggable={editingBotId !== bot.id && !isDefaultAssistant}
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragEnd={handleDragEnd}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, index)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && editingBotId !== bot.id && setCurrentBot(bot)}
               >
-                <span className="ai-studio-item-icon">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <rect x="2" y="2" width="12" height="12" rx="3" stroke="currentColor" strokeWidth="1.2" />
-                    <circle cx="6" cy="7" r="1.5" fill="currentColor" />
-                    <circle cx="10" cy="7" r="1.5" fill="currentColor" />
-                    <path d="M5 10.5C5.5 11.5 6.5 12 8 12C9.5 12 10.5 11.5 11 10.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                  </svg>
+                <span className={`ai-studio-item-icon ${isDefaultAssistant ? 'default' : ''}`}>
+                  {isDefaultAssistant ? (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 1L10 5H14L11 8L12 13L8 10.5L4 13L5 8L2 5H6L8 1Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <rect x="2" y="2" width="12" height="12" rx="3" stroke="currentColor" strokeWidth="1.2" />
+                      <circle cx="6" cy="7" r="1.5" fill="currentColor" />
+                      <circle cx="10" cy="7" r="1.5" fill="currentColor" />
+                      <path d="M5 10.5C5.5 11.5 6.5 12 8 12C9.5 12 10.5 11.5 11 10.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    </svg>
+                  )}
                 </span>
                 {editingBotId === bot.id ? (
                   <div className="ai-studio-item-edit-wrapper">
@@ -260,7 +244,7 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
                       <path d="M6 2V8M6 8L3.5 5.5M6 8L8.5 5.5M2 10H10" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </button>
-                  {onEditBot && (
+                  {onEditBot && !isDefaultAssistant && (
                     <button
                       className="ai-studio-item-action"
                       onClick={(e) => {
@@ -274,7 +258,7 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
                       </svg>
                     </button>
                   )}
-                  {onDeleteBot && (
+                  {onDeleteBot && !isDefaultAssistant && (
                     <button
                       className="ai-studio-item-action delete"
                       onClick={(e) => handleDeleteClick(e, bot.id, bot.name)}
@@ -287,8 +271,9 @@ export function Sidebar({ onEditBot, onCreateBot, onDeleteBot }: SidebarProps) {
                   )}
                   </div>
                 )}
-              </button>
-            ))}
+              </div>
+              );
+            })}
           </div>
         </div>
       </div>

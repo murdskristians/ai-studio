@@ -2,11 +2,7 @@ import { Button } from '../ui';
 import { useApp } from '../../contexts';
 import './Header.css';
 
-interface HeaderProps {
-  onOpenSettings: () => void;
-}
-
-export function Header({ onOpenSettings }: HeaderProps) {
+export function Header() {
   const { comparisonMode, setComparisonMode, clearMessages } = useApp();
 
   const handleToggleComparisonMode = () => {
@@ -52,12 +48,6 @@ export function Header({ onOpenSettings }: HeaderProps) {
             <path d="M6 3.5V2C6 1.44772 6.44772 1 7 1H9C9.55228 1 10 1.44772 10 2V3.5M12.5 6H14C14.5523 6 15 6.44772 15 7V9C15 9.55228 14.5523 10 14 10H12.5M3.5 6H2C1.44772 6 1 6.44772 1 7V9C1 9.55228 1.44772 10 2 10H3.5M10 12.5V14C10 14.5523 9.55228 15 9 15H7C6.44772 15 6 14.5523 6 14V12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           Compare
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onOpenSettings}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M13 5H11V3C11 1.9 10.1 1 9 1H7C5.9 1 5 1.9 5 3V5H3C1.9 5 1 5.9 1 7V9C1 10.1 1.9 11 3 11H5V13C5 14.1 5.9 15 7 15H9C10.1 15 11 14.1 11 13V11H13C14.1 11 15 10.1 15 9V7C15 5.9 14.1 5 13 5Z" stroke="currentColor" strokeWidth="1.5" fill="none" />
-          </svg>
-          API Keys
         </Button>
       </div>
     </header>

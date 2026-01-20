@@ -8,6 +8,7 @@ interface ComparisonChatSectionProps {
   readonly streamingMessageId: string | null;
   readonly collapsed: boolean;
   readonly onToggleCollapse: () => void;
+  readonly onDeleteMessage?: (id: string) => void;
 }
 
 export function ComparisonChatSection({
@@ -16,6 +17,7 @@ export function ComparisonChatSection({
   streamingMessageId,
   collapsed,
   onToggleCollapse,
+  onDeleteMessage,
 }: ComparisonChatSectionProps) {
   return (
     <div className={`ai-studio-comparison-chat-section ${collapsed ? 'collapsed' : ''}`}>
@@ -52,6 +54,7 @@ export function ComparisonChatSection({
             isLoading={isLoading}
             streamingMessageId={streamingMessageId}
             hideInput={true}
+            onDeleteMessage={onDeleteMessage}
           />
         </div>
       )}
