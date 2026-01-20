@@ -251,7 +251,8 @@ export function AppProvider({ children }: AppProviderProps) {
     };
 
     loadChats();
-  }, [userId, isLoadingBots, currentBotValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- currentBotValue is intentionally excluded to prevent re-fetching chats on model changes
+  }, [userId, isLoadingBots]);
 
   // Persist settings to localStorage
   useEffect(() => {
