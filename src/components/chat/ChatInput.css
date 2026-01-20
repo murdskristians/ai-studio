@@ -53,6 +53,18 @@ textarea.ai-studio-chat-input:focus-visible {
   padding: 8px !important;
 }
 
+.ai-studio-cancel-btn {
+  flex-shrink: 0;
+  padding: 8px !important;
+  background-color: var(--error-bg, #fee2e2) !important;
+  border-color: var(--error-border, #fca5a5) !important;
+  color: var(--error-text, #dc2626) !important;
+}
+
+.ai-studio-cancel-btn:hover {
+  background-color: var(--error-bg-hover, #fecaca) !important;
+}
+
 .ai-studio-chat-input-hint {
   text-align: center;
   font-size: 11px;

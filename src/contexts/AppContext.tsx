@@ -12,7 +12,6 @@ import type {
 import { DEFAULT_PARAMETERS } from '../types/parameters';
 import { DEFAULT_SETTINGS } from '../types/settings';
 import { getItem, setItem, STORAGE_KEYS } from '../services/storage';
-import { createProvider } from '../services/providers';
 import { MODELS, getModelById } from '../constants/models';
 import { AppContext, type AppState } from './AppContextDef';
 import { useUserId } from './useUser';
@@ -28,30 +27,6 @@ import {
   apiMessageToApp,
   messageToApiCreatePayload,
 } from '../services/api';
-
-// Helper function to format training examples for the API
-function formatTrainingExamples(examples: TrainingExample[]): string {
-  const enabledExamples = examples.filter(ex => ex.enabled);
-  if (enabledExamples.length === 0) return '';
-
-  return enabledExamples
-    .map(ex => `input: ${ex.input}\noutput: ${ex.output}`)
-    .join('\n\n');
-}
-
-// Helper function to build final system prompt with examples
-function buildFinalSystemPrompt(systemPrompt: string, examples: TrainingExample[]): string | undefined {
-  const formattedExamples = formatTrainingExamples(examples);
-  let finalPrompt = systemPrompt || '';
-
-  if (formattedExamples) {
-    finalPrompt = finalPrompt
-      ? `${finalPrompt}\n\n${formattedExamples}`
-      : formattedExamples;
-  }
-
-  return finalPrompt || undefined;
-}
 
 // Helper interface for message context
 interface MessageContext {
@@ -105,7 +80,7 @@ export function AppProvider({ children }: AppProviderProps) {
   const [systemPrompt, setSystemPrompt] = useState('');
 
   // Training examples
-  const [trainingExamples, setTrainingExamplesState] = useState<TrainingExample[]>([]);
+  const [trainingExamples, setTrainingExamples] = useState<TrainingExample[]>([]);
 
   // Messages - loaded from API via conversations
   const [botMessages, setBotMessages] = useState<Record<string, Message[]>>({});
@@ -121,6 +96,9 @@ export function AppProvider({ children }: AppProviderProps) {
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
   );
+
+  // Abort controller for canceling in-flight requests
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // UI state - still use localStorage
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
@@ -190,15 +168,13 @@ export function AppProvider({ children }: AppProviderProps) {
         let botToSelect = savedBotId ? loadedBots.find(b => b.id === savedBotId) : null;
 
         // If no saved bot or saved bot not found, select Default Assistant
-        if (!botToSelect) {
-          botToSelect = defaultAssistant;
-        }
+        botToSelect ??= defaultAssistant;
 
         if (botToSelect) {
           setCurrentBotValue(botToSelect);
           setSystemPrompt(botToSelect.systemPrompt);
           setParameters(botToSelect.defaultParameters);
-          setTrainingExamplesState(botToSelect.trainingExamples || []);
+          setTrainingExamples(botToSelect.trainingExamples || []);
           if (botToSelect.preferredModel) {
             const model = getModelById(botToSelect.preferredModel);
             if (model) setSelectedModelValue(model);
@@ -252,7 +228,7 @@ export function AppProvider({ children }: AppProviderProps) {
             c.botId === selectedBotId || (isDefaultAssistant && !c.botId)
           );
           if (botConversations.length > 0) {
-            conversationToLoad = botConversations.sort((a, b) => b.createdAt - a.createdAt)[0];
+            conversationToLoad = [...botConversations].sort((a, b) => b.createdAt - a.createdAt)[0];
           }
         }
 
@@ -386,7 +362,7 @@ export function AppProvider({ children }: AppProviderProps) {
       if (bot) {
         setSystemPrompt(bot.systemPrompt);
         setParameters(bot.defaultParameters);
-        setTrainingExamplesState(bot.trainingExamples || []);
+        setTrainingExamples(bot.trainingExamples || []);
         if (bot.preferredModel) {
           const model = getModelById(bot.preferredModel);
           if (model) {
@@ -396,7 +372,7 @@ export function AppProvider({ children }: AppProviderProps) {
       } else {
         setSystemPrompt('');
         setParameters(DEFAULT_PARAMETERS);
-        setTrainingExamplesState([]);
+        setTrainingExamples([]);
       }
 
       // Try to load the most recent conversation for this bot from API
@@ -407,7 +383,7 @@ export function AppProvider({ children }: AppProviderProps) {
       );
 
       if (botConversations.length > 0) {
-        const mostRecent = botConversations.sort((a, b) => b.createdAt - a.createdAt)[0];
+        const mostRecent = [...botConversations].sort((a, b) => b.createdAt - a.createdAt)[0];
         setCurrentConversation(mostRecent);
 
         // Load messages from API
@@ -531,7 +507,7 @@ export function AppProvider({ children }: AppProviderProps) {
 
   const updateTrainingExamples = useCallback(
     (examples: TrainingExample[]) => {
-      setTrainingExamplesState(examples);
+      setTrainingExamples(examples);
       if (currentBotValue && userId) {
         const updatedBot = { ...currentBotValue, trainingExamples: examples, updatedAt: Date.now() };
         setBots((prev) =>
@@ -968,6 +944,10 @@ export function AppProvider({ children }: AppProviderProps) {
       setTargetStreamingId?: (id: string | null) => void,
       setIsLoadingTarget?: (loading: boolean) => void
     ): Promise<{ success: boolean; error?: string; provider?: string }> => {
+      if (!userId) {
+        return { success: false, error: 'user_not_logged_in' };
+      }
+
       const callbacks: TargetCallbacks = {
         setMessages: setTargetMessages,
         setStreamingId: setTargetStreamingId,
@@ -975,12 +955,32 @@ export function AppProvider({ children }: AppProviderProps) {
       };
 
       const ctx = getMessageContext(targetBot);
-      const apiKey = settings.apiKeys[ctx.model.provider];
+      const bot = targetBot ?? currentBotValue;
 
-      if (!apiKey) {
-        return { success: false, error: 'api_key_missing', provider: ctx.model.provider };
+      if (!bot) {
+        return { success: false, error: 'no_bot_selected' };
       }
 
+      // Step 1: Ensure chat exists (create if needed)
+      let chatId = currentConversation?.id;
+      if (!chatId) {
+        try {
+          const chatPayload = conversationToApiChatCreatePayload(
+            { title: content.slice(0, 50), botId: bot.id },
+            userId
+          );
+          const apiChat = await chatsApi.create(chatPayload);
+          const newConversation = apiChatToConversation(apiChat);
+          setConversations((prev) => [newConversation, ...prev]);
+          setCurrentConversation(newConversation);
+          chatId = newConversation.id;
+        } catch (error) {
+          console.error('Failed to create chat:', error);
+          return { success: false, error: 'chat_creation_failed' };
+        }
+      }
+
+      // Step 2: Add user message to local state
       const userMessage: Message = {
         id: uuidv4(),
         role: 'user',
@@ -988,65 +988,49 @@ export function AppProvider({ children }: AppProviderProps) {
         timestamp: Date.now(),
       };
       const updatedMessages = [...ctx.messages, userMessage];
-
       updateMessages(targetBot, updatedMessages, callbacks);
-
-      // Save user message to existing conversation (new conversations save all messages at once)
-      if (currentConversation) {
-        messagesApi.create(messageToApiCreatePayload(userMessage, currentConversation.id)).catch(console.error);
-      }
 
       const assistantMessageId = uuidv4();
       setStreamingStates(assistantMessageId, callbacks);
       setLoadingStates(true, callbacks);
 
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+
       try {
-        const provider = createProvider(ctx.model.provider, apiKey);
-        const messagesForApi = updatedMessages.map((m) => ({ role: m.role, content: m.content }));
-        const finalSystemPrompt = buildFinalSystemPrompt(ctx.systemPrompt, ctx.examples);
+        // Step 3: Call backend AI endpoint
+        const response = await chatsApi.send(
+          {
+            message: content,
+            agentId: bot.id,
+            chatId,
+          },
+          abortControllerRef.current.signal
+        );
 
-        const stream = provider.generateStream({
-          model: ctx.model.id,
-          messages: messagesForApi,
-          systemPrompt: finalSystemPrompt,
-          parameters: ctx.parameters,
-        });
-
-        let fullResponse = '';
-        for await (const chunk of stream) {
-          if (!chunk.text) continue;
-
-          fullResponse += chunk.text;
-          const streamingMessage: Message = {
-            id: assistantMessageId,
-            role: 'assistant',
-            content: fullResponse,
-            timestamp: Date.now(),
-            model: ctx.model.name,
-          };
-          updateMessages(targetBot, [...updatedMessages, streamingMessage], callbacks);
-        }
-
+        // Step 4: Add AI response to local state
         const assistantMessage: Message = {
           id: assistantMessageId,
           role: 'assistant',
-          content: fullResponse,
+          content: response.response,
           timestamp: Date.now(),
-          model: ctx.model.name,
+          model: 'Gemini',
         };
         const finalMessages = [...updatedMessages, assistantMessage];
+        updateMessages(targetBot, finalMessages, callbacks);
 
-        // Save assistant message to existing conversation
-        if (currentConversation) {
-          messagesApi.create(messageToApiCreatePayload(assistantMessage, currentConversation.id)).catch(console.error);
+        // Update conversation title if this was the first message
+        if (finalMessages.length === 2) {
+          chatsApi.update({ _id: chatId, name: content.slice(0, 50) }).catch(console.error);
         }
 
-        // For new conversations, save everything at once
-        if (!targetBot) {
-          setTimeout(() => saveCurrentConversation(finalMessages), 100);
-        }
         return { success: true };
       } catch (error) {
+        // Check if this was a cancellation
+        if (error instanceof Error && error.name === 'AbortError') {
+          // Don't show error message for cancelled requests
+          return { success: false, error: 'cancelled' };
+        }
         console.error('Error generating response:', error);
         const errorContent = error instanceof Error ? error.message : 'Failed to generate response';
         const errorMessage: Message = {
@@ -1054,25 +1038,32 @@ export function AppProvider({ children }: AppProviderProps) {
           role: 'assistant',
           content: `Error: ${errorContent}`,
           timestamp: Date.now(),
-          model: ctx.model.name,
         };
         updateMessages(targetBot, [...updatedMessages, errorMessage], callbacks);
-        return { success: true };
+        return { success: false, error: errorContent };
       } finally {
+        abortControllerRef.current = null;
         setLoadingStates(false, callbacks);
         setStreamingStates(null, callbacks);
       }
     },
     [
-      settings.apiKeys,
+      userId,
       getMessageContext,
       updateMessages,
       setLoadingStates,
       setStreamingStates,
-      saveCurrentConversation,
       currentConversation,
+      currentBotValue,
     ]
   );
+
+  const cancelSendMessage = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
 
   const handleSetComparisonMode = useCallback(
     (enabled: boolean) => {
@@ -1124,6 +1115,7 @@ export function AppProvider({ children }: AppProviderProps) {
       isLoadingChats,
       streamingMessageId,
       sendMessage,
+      cancelSendMessage,
       sidebarCollapsed,
       setSidebarCollapsed,
       parameterPanelCollapsed,
@@ -1171,6 +1163,7 @@ export function AppProvider({ children }: AppProviderProps) {
       isLoadingChats,
       streamingMessageId,
       sendMessage,
+      cancelSendMessage,
       sidebarCollapsed,
       parameterPanelCollapsed,
       comparisonMode,

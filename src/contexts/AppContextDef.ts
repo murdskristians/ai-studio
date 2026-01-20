@@ -44,6 +44,7 @@ export interface AppState {
     setTargetStreamingId?: (id: string | null) => void,
     setIsLoadingTarget?: (loading: boolean) => void
   ) => Promise<{ success: boolean; error?: string; provider?: string }>;
+  cancelSendMessage: () => void;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
   parameterPanelCollapsed: boolean;

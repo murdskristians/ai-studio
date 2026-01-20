@@ -11,6 +11,8 @@ import type {
   ApiChat,
   ApiChatCreatePayload,
   ApiChatUpdatePayload,
+  ApiChatSendPayload,
+  ApiChatSendResponse,
 } from './types';
 
 const API_BASE = 'https://server1.gpark.digital/8084';
@@ -18,13 +20,14 @@ const API_BASE = 'https://server1.gpark.digital/8084';
 /**
  * Generic POST request helper
  */
-async function post<T>(endpoint: string, body: Record<string, unknown>): Promise<T> {
+async function post<T>(endpoint: string, body: object, signal?: AbortSignal): Promise<T> {
   const response = await fetch(`${API_BASE}/?api=${endpoint}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
+    signal,
   });
 
   if (!response.ok) {
@@ -114,6 +117,14 @@ export const chatsApi = {
    */
   delete: async (chatId: string): Promise<void> => {
     await post<unknown>('chats-delete', { _id: chatId });
+  },
+
+  /**
+   * Send a message to AI and get response
+   * Backend handles: calling Gemini, saving user message, saving AI response
+   */
+  send: async (payload: ApiChatSendPayload, signal?: AbortSignal): Promise<ApiChatSendResponse> => {
+    return post<ApiChatSendResponse>('chats-send', payload, signal);
   },
 };
 

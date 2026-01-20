@@ -1,11 +1,10 @@
 import { useState, useRef } from 'react';
 import { useApp } from './contexts';
-import { MainLayout, Header, Sidebar, SettingsModal } from './components/layout';
+import { MainLayout, Header, Sidebar } from './components/layout';
 import { ChatContainer } from './components/chat';
 import { ParameterPanel, ParameterPanelHandle } from './components/config';
 import { BotEditorModal } from './components/bots';
 import { ComparisonView } from './components/comparison';
-import { Modal, Button } from './components/ui';
 import type { Bot } from './types';
 
 export function AppContent() {
@@ -32,10 +31,8 @@ export function AppContent() {
     setSelectedModel,
   } = useApp();
 
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [botEditorOpen, setBotEditorOpen] = useState(false);
   const [editingBot, setEditingBot] = useState<Bot | null>(null);
-  const [apiKeyErrorProvider, setApiKeyErrorProvider] = useState<string | null>(null);
   const parameterPanelRef = useRef<ParameterPanelHandle>(null);
 
   const handleCreateBot = () => {
@@ -57,34 +54,13 @@ export function AppContent() {
     }
   };
 
-  const handleApiKeyError = (provider: string) => {
-    setApiKeyErrorProvider(provider);
-  };
-
-  const handleGoToApiKeys = () => {
-    setApiKeyErrorProvider(null);
-    setSettingsOpen(true);
-  };
-
-  const handleSelectAIModel = () => {
-    setApiKeyErrorProvider(null);
-    // Expand parameter panel if collapsed
-    if (parameterPanelCollapsed) {
-      setParameterPanelCollapsed(false);
-    }
-    // Focus the model selector
-    setTimeout(() => {
-      parameterPanelRef.current?.focusModelSelector();
-    }, 100);
-  };
-
   return (
     <>
       {comparisonMode ? (
         <ComparisonView />
       ) : (
         <MainLayout
-          header={<Header onOpenSettings={() => setSettingsOpen(true)} />}
+          header={<Header />}
           sidebar={
             <Sidebar
               onCreateBot={handleCreateBot}
@@ -98,7 +74,6 @@ export function AppContent() {
               onSendMessage={sendMessage}
               isLoading={isLoading}
               streamingMessageId={streamingMessageId}
-              onApiKeyError={handleApiKeyError}
             />
           }
           panel={
@@ -122,11 +97,6 @@ export function AppContent() {
         />
       )}
 
-      <SettingsModal
-        isOpen={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-      />
-
       <BotEditorModal
         isOpen={botEditorOpen}
         onClose={() => setBotEditorOpen(false)}
@@ -134,27 +104,6 @@ export function AppContent() {
         onSave={handleSaveBot}
         onDelete={deleteBot}
       />
-
-      <Modal
-        isOpen={apiKeyErrorProvider !== null}
-        onClose={() => setApiKeyErrorProvider(null)}
-        title="API Key Required"
-        size="sm"
-        footer={
-          <>
-            <Button variant="secondary" onClick={handleSelectAIModel}>
-              Select AI Model
-            </Button>
-            <Button onClick={handleGoToApiKeys}>
-              Go to API Keys
-            </Button>
-          </>
-        }
-      >
-        <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-          Please configure your <strong>{apiKeyErrorProvider}</strong> API key in settings to send messages.
-        </p>
-      </Modal>
     </>
   );
 }

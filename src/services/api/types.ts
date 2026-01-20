@@ -82,6 +82,18 @@ export interface ApiChatUpdatePayload {
   agentId?: string;
 }
 
+// Chat Send (AI Generation) types
+export interface ApiChatSendPayload {
+  message: string;
+  agentId: string;
+  chatId: string;
+}
+
+export interface ApiChatSendResponse {
+  chatId: string;
+  response: string;
+}
+
 // API Response types
 export interface ApiResponse<T> {
   data?: T;
