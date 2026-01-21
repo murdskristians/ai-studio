@@ -1,4 +1,6 @@
 // Gemini prompts for Employee Performance Analysis
+// All scoring rules, thresholds, and formulas are defined in the Work Analyzer bot's system prompt
+// These prompts send raw data only - the AI calculates scores based on system prompt configuration
 
 import type { Task, EmployeeChatMessage } from '../../types/performance';
 
@@ -20,13 +22,7 @@ export function getConversationSummaryPrompt(
     `[${new Date(m.timestamp).toLocaleDateString()}] ${m.content}`
   ).join('\n');
 
-  return `You are analyzing employee chat messages to create a productivity summary.
-
-Given the following chat messages from an employee, provide:
-1. A brief summary of what was discussed (2-3 sentences)
-2. The main topics categorized as: work, personal, administrative, social
-3. For each work topic, identify which task IDs (if any) the discussion relates to
-4. Calculate the percentage of work-related messages
+  return `Analyze the following employee chat messages and provide a productivity summary.
 
 Employee: ${employeeName}
 Period: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}
@@ -37,13 +33,13 @@ ${tasksList || 'No tasks assigned'}
 Chat messages:
 ${messagesList || 'No messages found'}
 
-Respond ONLY with valid JSON in this exact format (no markdown, no code blocks):
+Based on your system prompt rules for work vs non-work classification, respond with:
 {
-  "summaryText": "Brief summary of conversations",
+  "summaryText": "Brief summary of conversations (2-3 sentences)",
   "topics": [
     {
       "topic": "Topic name",
-      "category": "work",
+      "category": "work|personal|administrative|social",
       "messageCount": 3,
       "relevantTaskIds": ["task-001"]
     }
@@ -58,23 +54,20 @@ Respond ONLY with valid JSON in this exact format (no markdown, no code blocks):
  * Prompt for estimating task duration
  */
 export function getTaskDurationPrompt(task: Task): string {
-  return `You are an expert project manager. Based on the task description below, estimate the typical time required for a competent employee to complete this task.
+  return `Estimate the typical completion time for this task.
 
 Task Title: ${task.title}
 Task Description: ${task.description}
 Priority: ${task.priority}
 Tags: ${task.tags?.join(', ') || 'none'}
 
-Consider:
-- Standard industry practices for software development tasks
-- Typical complexity for such tasks
-- Buffer time for unexpected issues
+Use your system prompt rules for task duration estimation.
 
-Respond ONLY with valid JSON in this exact format (no markdown, no code blocks):
+Respond with:
 {
   "estimatedHours": 16,
-  "confidence": "high",
-  "reasoning": "Brief explanation of the estimate"
+  "confidence": "high|medium|low",
+  "reasoning": "Brief explanation"
 }`;
 }
 
@@ -90,7 +83,7 @@ export function getDelayJustificationPrompt(
     `[${new Date(m.timestamp).toLocaleDateString()}] ${m.content}`
   ).join('\n');
 
-  return `Analyze whether a task delay has been justified or explained in the employee's communications.
+  return `Analyze whether this task delay was justified based on employee communications.
 
 Task: ${task.title}
 Original Deadline: ${new Date(task.deadline).toLocaleDateString()}
@@ -100,173 +93,172 @@ Delay: ${delayDays} days
 Employee's chat messages during this period:
 ${messagesList || 'No messages found'}
 
-Determine:
-1. Was the delay mentioned or discussed?
-2. Was there a legitimate reason provided (technical issues, blocked by dependencies, scope changes)?
-3. What was the justification (if any)?
+Use your system prompt rules for delay justification (legitimacy score threshold, valid categories).
 
-Respond ONLY with valid JSON in this exact format (no markdown, no code blocks):
+Respond with:
 {
   "delayMentioned": true,
   "justificationProvided": true,
-  "justificationText": "The employee mentioned having technical issues with the framework",
-  "justificationCategory": "technical_issue",
+  "justificationText": "Explanation found in messages",
+  "justificationCategory": "technical_issue|dependency_blocked|scope_change|personal|unclear|none",
   "legitimacyScore": 7
-}
-
-justificationCategory must be one of: technical_issue, dependency_blocked, scope_change, personal, unclear, none
-legitimacyScore is 1-10, where 10 means fully justified and 1 means no justification`;
+}`;
 }
 
 /**
  * Prompt for calculating overall performance score
+ * Sends RAW DATA only - AI calculates scores using system prompt formulas
  */
 export function getPerformanceScorePrompt(
   employeeName: string,
   metrics: {
-    // Results Delivery metrics (50% weight) - Focus: Did work get done?
     resultsDelivery: {
       totalTasks: number;
       completedTasks: number;
-      completionRate: number; // percentage of tasks completed
-      taskOutputQuality: string; // 'high', 'medium', 'low' based on priority completion
+      highPriorityTotal: number;
+      highPriorityCompleted: number;
     };
-    // Communication Efficiency metrics (20% weight) - Focus: Is communication productive?
     communicationEfficiency: {
-      workRelatedPercent: number;
-      nonWorkRelatedPercent: number;
       totalMessages: number;
-      chatTimeMinutes: number;
+      workRelatedMessages: number;
     };
-    // Time Management metrics (20% weight) - Focus: How well are deadlines handled?
     timeManagement: {
-      onTimeDeliveryRate: number; // percentage delivered on time
-      averageDelayDays: number;
-      justifiedDelays: number;
-      unjustifiedDelays: number;
+      totalTasks: number;
+      onTimeTasks: number;
+      delayedTasks: Array<{
+        taskTitle: string;
+        delayDays: number;
+        justified: boolean;
+      }>;
     };
-    // Consistency metrics (10% weight) - Focus: Are there recurring issues?
-    consistency: {
-      flagCount: number;
-      criticalFlags: number;
-      warningFlags: number;
-      recurringIssues: string[];
-    };
-  },
-  flags: string[]
+    flags: Array<{
+      severity: 'critical' | 'warning' | 'info';
+      title: string;
+    }>;
+  }
 ): string {
-  // Pre-calculate the scores using deterministic formulas
-  // Results Delivery (50% weight): Based on completion rate and quality
-  const qualityBonus = metrics.resultsDelivery.taskOutputQuality === 'high' ? 10 :
-    metrics.resultsDelivery.taskOutputQuality === 'medium' ? 0 : -10;
-  const resultsScore = Math.min(100, Math.max(0,
-    metrics.resultsDelivery.completionRate + qualityBonus
-  ));
+  const delayDetails = metrics.timeManagement.delayedTasks.length > 0
+    ? metrics.timeManagement.delayedTasks.map(d =>
+        `- "${d.taskTitle}": ${d.delayDays} days delay, justified: ${d.justified}`
+      ).join('\n')
+    : 'None';
 
-  // Communication (20% weight): Based on work-related percentage
-  const commScore = metrics.communicationEfficiency.workRelatedPercent;
+  const flagDetails = metrics.flags.length > 0
+    ? metrics.flags.map(f => `- [${f.severity}] ${f.title}`).join('\n')
+    : 'None';
 
-  // Time Management (20% weight): On-time rate minus penalty for unjustified delays
-  const delayPenalty = metrics.timeManagement.unjustifiedDelays * 10;
-  const timeScore = Math.min(100, Math.max(0,
-    metrics.timeManagement.onTimeDeliveryRate - delayPenalty
-  ));
-
-  // Consistency (10% weight): Start at 100, subtract for flags
-  const consistencyScore = Math.min(100, Math.max(0,
-    100 - (metrics.consistency.criticalFlags * 25) - (metrics.consistency.warningFlags * 10)
-  ));
-
-  // Calculate weighted final score
-  const calculatedScore = Math.round(
-    (resultsScore * 0.50) +
-    (commScore * 0.20) +
-    (timeScore * 0.20) +
-    (consistencyScore * 0.10)
-  );
-
-  return `You are a performance scoring system. Calculate the performance score using EXACTLY the formulas provided below. Do NOT deviate from these calculations.
+  return `Calculate the performance score for this employee using your system prompt scoring rules.
 
 Employee: ${employeeName}
 
-=== INPUT DATA ===
+=== RAW DATA ===
 
 RESULTS DELIVERY:
-- Completion Rate: ${metrics.resultsDelivery.completionRate}%
-- Output Quality: ${metrics.resultsDelivery.taskOutputQuality}
 - Total Tasks: ${metrics.resultsDelivery.totalTasks}
 - Completed Tasks: ${metrics.resultsDelivery.completedTasks}
+- High/Urgent Priority Tasks: ${metrics.resultsDelivery.highPriorityTotal}
+- High/Urgent Priority Completed: ${metrics.resultsDelivery.highPriorityCompleted}
 
-COMMUNICATION EFFICIENCY:
-- Work-Related Messages: ${metrics.communicationEfficiency.workRelatedPercent}%
-- Non-Work Messages: ${metrics.communicationEfficiency.nonWorkRelatedPercent}%
+COMMUNICATION:
 - Total Messages: ${metrics.communicationEfficiency.totalMessages}
+- Work-Related Messages: ${metrics.communicationEfficiency.workRelatedMessages}
 
 TIME MANAGEMENT:
-- On-Time Delivery Rate: ${metrics.timeManagement.onTimeDeliveryRate}%
-- Average Delay: ${metrics.timeManagement.averageDelayDays} days
-- Justified Delays: ${metrics.timeManagement.justifiedDelays}
-- Unjustified Delays: ${metrics.timeManagement.unjustifiedDelays}
+- Total Tasks: ${metrics.timeManagement.totalTasks}
+- Delivered On Time: ${metrics.timeManagement.onTimeTasks}
+- Delayed Tasks:
+${delayDetails}
 
-CONSISTENCY:
-- Critical Issues: ${metrics.consistency.criticalFlags}
-- Warnings: ${metrics.consistency.warningFlags}
-- Recurring Issues: ${metrics.consistency.recurringIssues.length > 0 ? metrics.consistency.recurringIssues.join(', ') : 'None'}
-
-Flags: ${flags.length > 0 ? flags.join('; ') : 'None'}
-
-=== MANDATORY SCORING FORMULAS (USE EXACTLY) ===
-
-1. RESULTS DELIVERY SCORE (50% weight):
-   Formula: completionRate + qualityBonus
-   - qualityBonus = +10 if quality is "high", 0 if "medium", -10 if "low"
-   - Cap between 0-100
-   YOUR CALCULATION: ${metrics.resultsDelivery.completionRate} + ${qualityBonus} = ${resultsScore}
-
-2. COMMUNICATION SCORE (20% weight):
-   Formula: workRelatedPercent (directly)
-   YOUR CALCULATION: ${commScore}
-
-3. TIME MANAGEMENT SCORE (20% weight):
-   Formula: onTimeRate - (unjustifiedDelays × 10)
-   - Cap between 0-100
-   YOUR CALCULATION: ${metrics.timeManagement.onTimeDeliveryRate} - (${metrics.timeManagement.unjustifiedDelays} × 10) = ${timeScore}
-
-4. CONSISTENCY SCORE (10% weight):
-   Formula: 100 - (criticalFlags × 25) - (warningFlags × 10)
-   - Cap between 0-100
-   YOUR CALCULATION: 100 - (${metrics.consistency.criticalFlags} × 25) - (${metrics.consistency.warningFlags} × 10) = ${consistencyScore}
-
-5. FINAL SCORE:
-   Formula: (results × 0.50) + (communication × 0.20) + (time × 0.20) + (consistency × 0.10)
-   YOUR CALCULATION: (${resultsScore} × 0.50) + (${commScore} × 0.20) + (${timeScore} × 0.20) + (${consistencyScore} × 0.10) = ${calculatedScore}
-
-=== LEVEL DETERMINATION (MANDATORY) ===
-- 90-100: "excellent"
-- 75-89: "good"
-- 60-74: "average"
-- 40-59: "below_average"
-- 0-39: "poor"
-
-Based on score ${calculatedScore}, level should be: ${calculatedScore >= 90 ? 'excellent' : calculatedScore >= 75 ? 'good' : calculatedScore >= 60 ? 'average' : calculatedScore >= 40 ? 'below_average' : 'poor'}
+FLAGS GENERATED:
+${flagDetails}
 
 === YOUR TASK ===
-1. Verify the calculations above are correct
-2. Generate 1-3 specific recommendations based on the lowest scoring areas
-3. Return the JSON response
+1. Calculate each category score using your system prompt formulas
+2. Calculate weighted final score
+3. Determine performance level
+4. Generate 1-3 specific recommendations based on lowest scoring areas
 
-Respond ONLY with valid JSON (no markdown, no code blocks):
+Respond with:
 {
-  "score": ${calculatedScore},
-  "level": "${calculatedScore >= 90 ? 'excellent' : calculatedScore >= 75 ? 'good' : calculatedScore >= 60 ? 'average' : calculatedScore >= 40 ? 'below_average' : 'poor'}",
+  "score": 72,
+  "level": "average",
   "breakdown": {
-    "resultsDelivery": ${resultsScore},
-    "communicationEfficiency": ${commScore},
-    "timeManagement": ${timeScore},
-    "consistency": ${consistencyScore}
+    "resultsDelivery": 80,
+    "communicationEfficiency": 65,
+    "timeManagement": 70,
+    "consistency": 75
   },
   "recommendations": [
-    "Generate 1-3 specific recommendations based on weakest areas"
+    "Specific actionable recommendation 1",
+    "Specific actionable recommendation 2"
+  ]
+}`;
+}
+
+/**
+ * Prompt for generating flags based on analysis data
+ * AI decides which flags to generate based on system prompt thresholds
+ */
+export function getFlagGenerationPrompt(
+  employeeName: string,
+  data: {
+    tasks: Array<{
+      id: string;
+      title: string;
+      priority: string;
+      deadline: number;
+      completedAt?: number;
+      status: string;
+      delayDays?: number;
+      delayJustified?: boolean;
+    }>;
+    conversationSummary: {
+      totalMessages: number;
+      workRelatedMessages: number;
+      workRelatedPercentage: number;
+    };
+  }
+): string {
+  const taskDetails = data.tasks.map(t => {
+    const deadlineStr = new Date(t.deadline).toLocaleDateString();
+    const completedStr = t.completedAt ? new Date(t.completedAt).toLocaleDateString() : 'Not completed';
+    const delayStr = t.delayDays ? `, delayed ${t.delayDays} days (justified: ${t.delayJustified})` : '';
+    return `- [${t.id}] "${t.title}" (${t.priority}) - deadline: ${deadlineStr}, completed: ${completedStr}, status: ${t.status}${delayStr}`;
+  }).join('\n');
+
+  const completedCount = data.tasks.filter(t => t.status === 'completed').length;
+  const totalCount = data.tasks.length;
+
+  return `Generate performance flags for this employee based on your system prompt flag rules.
+
+Employee: ${employeeName}
+
+TASK DATA:
+${taskDetails}
+
+Summary:
+- Total tasks: ${totalCount}
+- Completed tasks: ${completedCount}
+- Completion rate: ${totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 100}%
+
+COMMUNICATION DATA:
+- Total messages: ${data.conversationSummary.totalMessages}
+- Work-related messages: ${data.conversationSummary.workRelatedMessages}
+- Work-related percentage: ${data.conversationSummary.workRelatedPercentage}%
+
+Use your system prompt rules to determine which flags (critical/warning) should be generated.
+
+Respond with:
+{
+  "flags": [
+    {
+      "type": "missed_deadline|unjustified_delay|excessive_chat|low_productivity",
+      "severity": "critical|warning",
+      "title": "Short flag title",
+      "description": "Detailed description of the issue",
+      "evidence": ["Specific fact 1", "Specific fact 2"],
+      "taskId": "optional task ID if applicable"
+    }
   ]
 }`;
 }
@@ -289,31 +281,21 @@ ${taskHistory}
 Chat Patterns:
 ${chatPatterns}
 
-Look for:
-1. Recurring delays on certain types of tasks
-2. Productivity fluctuations (day of week, time of month)
-3. Communication pattern changes
-4. Improvement or decline trends
-5. Signs of "busy but not productive" behavior (lots of chat, few results)
+Use your system prompt rules for pattern detection.
 
-Respond ONLY with valid JSON in this exact format (no markdown, no code blocks):
+Respond with:
 {
   "patternsDetected": [
     {
-      "type": "recurring_delay",
-      "description": "Tends to delay high-priority tasks",
-      "severity": "warning",
-      "evidence": ["Task X delayed", "Task Y delayed"]
+      "type": "recurring_delay|productivity_fluctuation|communication_change|trend|busy_not_productive",
+      "description": "Pattern description",
+      "severity": "info|warning|critical",
+      "evidence": ["Evidence 1", "Evidence 2"]
     }
   ],
-  "overallTrend": "stable",
-  "riskLevel": "medium"
-}
-
-type must be one of: recurring_delay, productivity_fluctuation, communication_change, trend, busy_not_productive
-severity must be one of: info, warning, critical
-overallTrend must be one of: improving, stable, declining
-riskLevel must be one of: low, medium, high`;
+  "overallTrend": "improving|stable|declining",
+  "riskLevel": "low|medium|high"
+}`;
 }
 
 /**
@@ -329,7 +311,7 @@ export function getReportSummaryPrompt(
   workChatPercent: number,
   flagCount: number
 ): string {
-  return `Generate a brief, professional performance report summary for a manager to read.
+  return `Generate a brief, professional performance report summary.
 
 Employee: ${employeeName}
 Performance Score: ${score}/100 (${level})
@@ -339,12 +321,11 @@ Work-Related Communication: ${workChatPercent}%
 Issues Flagged: ${flagCount}
 
 Write 2-3 sentences summarizing this employee's performance. Be direct and factual.
-Mention any concerns if score is below 70 or flag count is above 2.
 
-Respond ONLY with valid JSON in this exact format (no markdown, no code blocks):
+Respond with:
 {
   "summary": "Your summary text here",
-  "highlight": "Key point to emphasize",
+  "highlight": "Key positive point",
   "concern": "Main concern if any, or null"
 }`;
 }

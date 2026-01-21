@@ -26,16 +26,15 @@ export function PerformanceDashboard() {
     overdue: filteredData.tasks.filter(t => t.status === 'overdue').length,
   };
 
-  // Calculate message statistics (work vs non-work detection based on keywords)
-  const nonWorkKeywords = ['game', 'lunch', 'funny', 'video', 'marvel', 'trailer', 'watch'];
+  // Calculate message statistics
+  // Note: For accurate work vs non-work detection, run the full AI analysis
+  // This is a simplified client-side approximation for dashboard display
+  // The actual categorization rules are defined in the Work Analyzer bot's system prompt
   const messageStats = {
     total: filteredData.messages.length,
-    workRelated: filteredData.messages.filter(m =>
-      !nonWorkKeywords.some(keyword => m.content.toLowerCase().includes(keyword))
-    ).length,
-    nonWorkRelated: filteredData.messages.filter(m =>
-      nonWorkKeywords.some(keyword => m.content.toLowerCase().includes(keyword))
-    ).length,
+    // Dashboard shows total only - detailed breakdown requires AI analysis
+    workRelated: filteredData.messages.length,
+    nonWorkRelated: 0,
   };
 
   // Mock dashboard summary - in real app, this would come from context/API
