@@ -1,0 +1,153 @@
+.ai-studio-performance-report {
+  max-width: 1000px;
+}
+
+/* Report Header */
+.ai-studio-report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ai-studio-report-header h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+}
+
+.ai-studio-report-meta {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.ai-studio-report-generated {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 4px 0 0 0;
+}
+
+/* Summary Cards */
+.ai-studio-report-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.ai-studio-report-summary-card {
+  flex: 1;
+  min-width: 100px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  font-family: inherit;
+}
+
+.ai-studio-report-summary-card.clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.ai-studio-report-summary-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent-blue);
+}
+
+.ai-studio-report-summary-card.clickable:active {
+  transform: translateY(0);
+}
+
+.ai-studio-report-summary-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ai-studio-report-summary-card.success .ai-studio-report-summary-value {
+  color: var(--accent-green);
+}
+
+.ai-studio-report-summary-card.warning .ai-studio-report-summary-value {
+  color: var(--accent-yellow);
+}
+
+.ai-studio-report-summary-card.danger .ai-studio-report-summary-value {
+  color: var(--accent-red);
+}
+
+.ai-studio-report-summary-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Sections */
+.ai-studio-report-section {
+  margin-bottom: 32px;
+}
+
+.ai-studio-report-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+}
+
+/* Time Metrics */
+.ai-studio-time-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.ai-studio-time-metric {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ai-studio-time-metric-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ai-studio-time-metric-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Recommendations */
+.ai-studio-recommendations {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px 16px 16px 32px;
+  margin: 0;
+}
+
+.ai-studio-recommendations li {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.ai-studio-recommendations li:last-child {
+  margin-bottom: 0;
+}

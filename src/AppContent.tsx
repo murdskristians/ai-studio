@@ -1,11 +1,15 @@
 import { useState, useRef } from 'react';
-import { useApp } from './contexts';
+import { useApp, PerformanceProvider } from './contexts';
 import { MainLayout, Header, Sidebar } from './components/layout';
 import { ChatContainer } from './components/chat';
 import { ParameterPanel, ParameterPanelHandle } from './components/config';
 import { BotEditorModal } from './components/bots';
 import { ComparisonView } from './components/comparison';
+import { PerformanceMonitor } from './components/performance';
+import { getItem, setItem } from './services/storage';
 import type { Bot } from './types';
+
+const PERFORMANCE_MODE_KEY = 'performance-mode';
 
 export function AppContent() {
   const {
@@ -33,7 +37,16 @@ export function AppContent() {
 
   const [botEditorOpen, setBotEditorOpen] = useState(false);
   const [editingBot, setEditingBot] = useState<Bot | null>(null);
+  const [performanceMode, setPerformanceModeState] = useState(() =>
+    getItem(PERFORMANCE_MODE_KEY, false)
+  );
   const parameterPanelRef = useRef<ParameterPanelHandle>(null);
+
+  // Persist performance mode to localStorage
+  const setPerformanceMode = (enabled: boolean) => {
+    setPerformanceModeState(enabled);
+    setItem(PERFORMANCE_MODE_KEY, enabled);
+  };
 
   const handleCreateBot = () => {
     // Create bot directly with default values (no popup)
@@ -54,13 +67,31 @@ export function AppContent() {
     }
   };
 
+  const handleTogglePerformanceMode = () => {
+    setPerformanceMode(!performanceMode);
+  };
+
+  // Performance mode view
+  if (performanceMode) {
+    return (
+      <PerformanceProvider>
+        <PerformanceMonitor onBack={() => setPerformanceMode(false)} />
+      </PerformanceProvider>
+    );
+  }
+
   return (
     <>
       {comparisonMode ? (
         <ComparisonView />
       ) : (
         <MainLayout
-          header={<Header />}
+          header={
+            <Header
+              performanceMode={performanceMode}
+              onTogglePerformanceMode={handleTogglePerformanceMode}
+            />
+          }
           sidebar={
             <Sidebar
               onCreateBot={handleCreateBot}

@@ -2,7 +2,12 @@ import { Button } from '../ui';
 import { useApp } from '../../contexts';
 import './Header.css';
 
-export function Header() {
+interface HeaderProps {
+  readonly performanceMode?: boolean;
+  readonly onTogglePerformanceMode?: () => void;
+}
+
+export function Header({ performanceMode = false, onTogglePerformanceMode }: HeaderProps) {
   const { comparisonMode, setComparisonMode, clearMessages } = useApp();
 
   const handleToggleComparisonMode = () => {
@@ -49,6 +54,16 @@ export function Header() {
           </svg>
           Compare
         </Button>
+        {onTogglePerformanceMode && (
+          <Button variant="ghost" size="sm" onClick={onTogglePerformanceMode} className={performanceMode ? 'active' : ''}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M10.5 14v-1.33a2.67 2.67 0 0 0-2.67-2.67H4a2.67 2.67 0 0 0-2.67 2.67V14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="5.92" cy="4.67" r="2.67" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M14.67 14v-1.33a2.67 2.67 0 0 0-2-2.58M10.67 2.09a2.67 2.67 0 0 1 0 5.17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Performance
+          </Button>
+        )}
       </div>
     </header>
   );

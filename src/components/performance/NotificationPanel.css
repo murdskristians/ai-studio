@@ -1,0 +1,180 @@
+.ai-studio-notification-panel {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.ai-studio-notification-panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+.ai-studio-notification-panel-empty svg {
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.ai-studio-notification-panel-empty p {
+  font-size: 13px;
+  margin: 0;
+}
+
+.ai-studio-notification-item {
+  display: flex;
+  gap: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--border-color);
+  position: relative;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.ai-studio-notification-item.dismissing {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.ai-studio-notification-main {
+  display: flex;
+  gap: 12px;
+  padding: 12px 40px 12px 16px;
+  flex: 1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background-color var(--transition-fast);
+}
+
+.ai-studio-notification-main:hover {
+  background-color: var(--bg-hover);
+}
+
+.ai-studio-notification-main.clickable {
+  cursor: pointer;
+}
+
+.ai-studio-notification-main.clickable:hover {
+  background-color: rgba(51, 152, 219, 0.1);
+}
+
+.ai-studio-notification-item:hover .ai-studio-notification-dismiss {
+  opacity: 1;
+}
+
+.ai-studio-notification-item.read {
+  opacity: 0.7;
+}
+
+.ai-studio-notification-item.unread {
+  background-color: rgba(51, 152, 219, 0.05);
+}
+
+.ai-studio-notification-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ai-studio-notification-item.critical .ai-studio-notification-icon {
+  color: var(--accent-red);
+}
+
+.ai-studio-notification-item.warning .ai-studio-notification-icon {
+  color: var(--accent-yellow);
+}
+
+.ai-studio-notification-item.info .ai-studio-notification-icon {
+  color: var(--accent-blue);
+}
+
+.ai-studio-notification-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-studio-notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ai-studio-notification-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ai-studio-notification-time-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.ai-studio-notification-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.ai-studio-notification-message {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 6px 0;
+  line-height: 1.4;
+}
+
+.ai-studio-notification-employee {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ai-studio-notification-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--accent-blue);
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+
+/* Dismiss button */
+.ai-studio-notification-dismiss {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  color: var(--text-muted);
+}
+
+.ai-studio-notification-dismiss:hover {
+  background-color: var(--accent-red);
+  border-color: var(--accent-red);
+  color: white;
+}
+
+.ai-studio-notification-dismiss:focus {
+  opacity: 1;
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
