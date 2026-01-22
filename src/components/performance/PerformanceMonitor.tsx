@@ -103,7 +103,7 @@ export function PerformanceMonitor({ onBack }: PerformanceMonitorProps) {
   const employeeStats = useMemo(() => {
     if (!selectedEmployee) return null;
 
-    const nonWorkKeywords = ['game', 'lunch', 'funny', 'video', 'marvel', 'trailer', 'watch'];
+    const nonWorkKeywords = ['game', 'lunch', 'funny', 'video', 'marvel', 'trailer', 'watch', 'movie', 'weekend', 'party', 'coffee', 'meme', 'concert', 'pizza', 'sushi', 'beach', 'series', 'binge'];
 
     return {
       tasks: {
