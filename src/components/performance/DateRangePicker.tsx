@@ -35,15 +35,15 @@ interface DateRangeModalProps {
 }
 
 export function DateRangeModal({ isOpen, onClose, dateRange, onChange }: DateRangeModalProps) {
-  if (!isOpen) return null;
-
-  const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
 
   const handlePresetChange = (days: number) => {
-    const start = now - days * day;
-    onChange({ start, end: now });
+    const currentTime = Date.now();
+    const start = currentTime - days * day;
+    onChange({ start, end: currentTime });
   };
+
+  if (!isOpen) return null;
 
   const formatDateForInput = (timestamp: number) => {
     return new Date(timestamp).toISOString().split('T')[0];

@@ -37,7 +37,7 @@ export function PerformanceProvider({ children }: PerformanceProviderProps) {
   const { bots } = useApp();
 
   // Data state
-  const [employees, setEmployees] = useState<Employee[]>(() => getAllEmployees());
+  const [employees] = useState<Employee[]>(() => getAllEmployees());
   const [selectedEmployee, setSelectedEmployeeState] = useState<Employee | null>(null);
   const [employeeTasks, setEmployeeTasks] = useState<Task[]>([]);
   const [employeeMessages, setEmployeeMessages] = useState<EmployeeChatMessage[]>([]);

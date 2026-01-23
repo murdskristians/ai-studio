@@ -11,6 +11,7 @@ interface NotificationPanelProps {
 
 export function NotificationPanel({ notifications, onMarkRead, onClear, onNotificationClick }: Readonly<NotificationPanelProps>) {
   const [dismissingIds, setDismissingIds] = useState<Set<string>>(new Set());
+  const [currentTime] = useState(() => Date.now());
 
   const handleDismiss = (e: React.MouseEvent, notificationId: string) => {
     e.stopPropagation(); // Prevent marking as read when clicking dismiss
@@ -38,9 +39,8 @@ export function NotificationPanel({ notifications, onMarkRead, onClear, onNotifi
     );
   }
 
-  const formatTime = (timestamp: number) => {
-    const now = Date.now();
-    const diff = now - timestamp;
+  const formatTime = (timestamp: number, currentTime: number) => {
+    const diff = currentTime - timestamp;
     const minutes = Math.floor(diff / (1000 * 60));
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -109,7 +109,7 @@ export function NotificationPanel({ notifications, onMarkRead, onClear, onNotifi
               <span className="ai-studio-notification-header">
                 <span className="ai-studio-notification-title">{notification.title}</span>
                 <span className="ai-studio-notification-time-wrapper">
-                  <span className="ai-studio-notification-time">{formatTime(notification.createdAt)}</span>
+                  <span className="ai-studio-notification-time">{formatTime(notification.createdAt, currentTime)}</span>
                   {!notification.read && <span className="ai-studio-notification-dot" />}
                 </span>
               </span>

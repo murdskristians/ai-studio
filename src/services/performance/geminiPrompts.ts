@@ -232,6 +232,7 @@ export function getFlagGenerationPrompt(
   return `Generate performance flags for this employee based on your system prompt flag rules.
 
 Employee: ${employeeName}
+Today's Date: ${new Date().toLocaleDateString()}
 
 TASK DATA:
 ${taskDetails}
