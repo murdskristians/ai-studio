@@ -27,6 +27,7 @@ export function AppContent() {
     setParameterPanelCollapsed,
     bots,
     currentBot,
+    setCurrentBot,
     createBot,
     updateBot,
     deleteBot,
@@ -49,8 +50,9 @@ export function AppContent() {
   };
 
   const handleCreateBot = () => {
-    // Create bot directly with default values (no popup)
-    createBot();
+    // Open modal for creating a new bot
+    setEditingBot(null);
+    setBotEditorOpen(true);
   };
 
   const handleEditBot = (botId: string) => {
@@ -61,9 +63,14 @@ export function AppContent() {
     }
   };
 
-  const handleSaveBot = (botData: Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSaveBot = async (botData: Omit<Bot, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editingBot) {
+      // Update existing bot
       updateBot(editingBot.id, botData);
+    } else {
+      // Create new bot and select it
+      const newBot = await createBot(botData);
+      setCurrentBot(newBot);
     }
   };
 

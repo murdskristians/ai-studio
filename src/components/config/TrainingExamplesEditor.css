@@ -88,6 +88,8 @@
 }
 
 .ai-studio-example-item {
+  width: 100%;
+  box-sizing: border-box;
   background-color: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -106,6 +108,7 @@
   padding: 10px 12px;
   cursor: pointer;
   transition: background-color var(--transition-fast);
+  width: 100%;
 }
 
 .ai-studio-example-header:hover {
