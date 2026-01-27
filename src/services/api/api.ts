@@ -155,3 +155,39 @@ export const messagesApi = {
     await post<unknown>('messages-delete', { _id: messageId });
   },
 };
+
+// ============================================
+// PERFORMANCE API (AI Analysis via chats-send)
+// ============================================
+
+export interface PerformanceAnalyzeParams {
+  prompt: string;
+  agentId: string;
+  chatId: string;
+}
+
+export const performanceApi = {
+  /**
+   * Create a new chat session for analysis
+   * Uses the real userId from the logged-in user
+   */
+  createAnalysisChat: async (agentId: string, employeeName: string, userId: string): Promise<ApiChat> => {
+    return chatsApi.create({
+      agentId,
+      userId,
+      name: `Performance Analysis - ${employeeName}`,
+    });
+  },
+
+  /**
+   * Send a prompt to Gemini for performance analysis using existing chats-send API
+   */
+  analyze: async (params: PerformanceAnalyzeParams): Promise<{ response: string }> => {
+    const result = await chatsApi.send({
+      message: params.prompt,
+      agentId: params.agentId,
+      chatId: params.chatId,
+    });
+    return { response: result.response };
+  },
+};

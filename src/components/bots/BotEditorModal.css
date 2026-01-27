@@ -28,3 +28,88 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Examples Section */
+.ai-studio-examples-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ai-studio-example-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  flex-direction: column;
+}
+
+.ai-studio-example-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ai-studio-example-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai-studio-example-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.ai-studio-example-text {
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ai-studio-example-remove {
+  flex-shrink: 0;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-studio-example-remove:hover {
+  background: var(--bg-tertiary);
+  color: var(--error-color);
+}
+
+.ai-studio-example-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-studio-example-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.ai-studio-example-form .ai-studio-btn {
+  align-self: flex-start;
+}
+
+@media (max-width: 560px) {
+  .ai-studio-example-inputs {
+    grid-template-columns: 1fr;
+  }
+}

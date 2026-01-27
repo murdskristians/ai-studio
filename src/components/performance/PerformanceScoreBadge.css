@@ -1,0 +1,83 @@
+.ai-studio-score-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+
+/* Sizes */
+.ai-studio-score-badge.small {
+  min-width: 36px;
+  height: 36px;
+  padding: 4px 8px;
+}
+
+.ai-studio-score-badge.small .ai-studio-score-value {
+  font-size: 14px;
+}
+
+.ai-studio-score-badge.medium {
+  min-width: 48px;
+  height: 48px;
+  padding: 6px 12px;
+}
+
+.ai-studio-score-badge.medium .ai-studio-score-value {
+  font-size: 18px;
+}
+
+.ai-studio-score-badge.large {
+  min-width: 80px;
+  height: 80px;
+  padding: 8px 16px;
+}
+
+.ai-studio-score-badge.large .ai-studio-score-value {
+  font-size: 32px;
+}
+
+.ai-studio-score-badge.large .ai-studio-score-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Not analyzed state */
+.ai-studio-score-badge.not-analyzed {
+  background-color: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+/* Levels */
+.ai-studio-score-badge.excellent {
+  background-color: rgba(103, 210, 134, 0.15);
+  color: var(--accent-green);
+}
+
+.ai-studio-score-badge.good {
+  background-color: rgba(103, 210, 134, 0.1);
+  color: var(--accent-green);
+}
+
+.ai-studio-score-badge.average {
+  background-color: rgba(251, 177, 60, 0.15);
+  color: var(--accent-yellow);
+}
+
+.ai-studio-score-badge.below_average {
+  background-color: rgba(251, 177, 60, 0.1);
+  color: #d4940d;
+}
+
+.ai-studio-score-badge.poor {
+  background-color: rgba(227, 100, 100, 0.15);
+  color: var(--accent-red);
+}
+
+.ai-studio-score-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}

@@ -1,0 +1,224 @@
+.ai-studio-performance-dashboard {
+  max-width: 1200px;
+}
+
+.ai-studio-performance-dashboard h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 24px 0;
+}
+
+/* Summary Cards */
+.ai-studio-dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.ai-studio-dashboard-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ai-studio-dashboard-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-blue);
+}
+
+.ai-studio-dashboard-card-icon.score {
+  color: var(--accent-green);
+}
+
+.ai-studio-dashboard-card-icon.alerts {
+  color: var(--accent-yellow);
+}
+
+.ai-studio-dashboard-card-icon.danger {
+  color: #e67e22;
+}
+
+.ai-studio-dashboard-card-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-studio-dashboard-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ai-studio-dashboard-card-value.danger {
+  color: #e67e22;
+}
+
+.ai-studio-dashboard-card-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Sections */
+.ai-studio-dashboard-section {
+  margin-bottom: 32px;
+}
+
+.ai-studio-dashboard-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+}
+
+.ai-studio-dashboard-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 16px 0;
+}
+
+/* Employee Grid */
+.ai-studio-dashboard-employee-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.ai-studio-dashboard-employee-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.ai-studio-dashboard-employee-card:hover {
+  border-color: var(--accent-blue);
+  background-color: var(--bg-tertiary);
+}
+
+.ai-studio-dashboard-employee-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--accent-blue);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.ai-studio-dashboard-employee-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ai-studio-dashboard-employee-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ai-studio-dashboard-employee-role {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.ai-studio-dashboard-employee-dept {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ai-studio-dashboard-employee-score {
+  flex-shrink: 0;
+}
+
+/* Alerts */
+.ai-studio-dashboard-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-studio-dashboard-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--border-color);
+}
+
+.ai-studio-dashboard-alert.critical {
+  border-left-color: var(--accent-red);
+}
+
+.ai-studio-dashboard-alert.warning {
+  border-left-color: var(--accent-yellow);
+}
+
+.ai-studio-dashboard-alert.info {
+  border-left-color: var(--accent-blue);
+}
+
+.ai-studio-dashboard-alert-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ai-studio-dashboard-alert.critical .ai-studio-dashboard-alert-icon {
+  color: var(--accent-red);
+}
+
+.ai-studio-dashboard-alert.warning .ai-studio-dashboard-alert-icon {
+  color: var(--accent-yellow);
+}
+
+.ai-studio-dashboard-alert.info .ai-studio-dashboard-alert-icon {
+  color: var(--accent-blue);
+}
+
+.ai-studio-dashboard-alert-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ai-studio-dashboard-alert-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ai-studio-dashboard-alert-message {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.ai-studio-dashboard-alert-employee {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}

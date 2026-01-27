@@ -1,10 +1,37 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Modal, Button, Input, TextArea, Select } from '../ui';
 import { Slider, TagInput } from '../ui';
-import type { Bot, GenerationParameters } from '../../types';
+import type { Bot, GenerationParameters, TrainingExample } from '../../types';
 import { DEFAULT_PARAMETERS, PARAMETER_LIMITS } from '../../types/parameters';
 import { MODELS } from '../../constants/models';
 import './BotEditorModal.css';
+
+const CREATE_BOT_DRAFT_KEY = 'ai-studio-create-bot-draft';
+
+interface CreateBotDraft {
+  name: string;
+  description: string;
+  systemPrompt: string;
+  preferredModel: string;
+  parameters: GenerationParameters;
+  trainingExamples: TrainingExample[];
+}
+
+function loadDraftFromStorage(): CreateBotDraft | null {
+  try {
+    const saved = localStorage.getItem(CREATE_BOT_DRAFT_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null;
+}
+
+function clearDraftFromStorage(): void {
+  localStorage.removeItem(CREATE_BOT_DRAFT_KEY);
+}
 
 interface BotEditorModalProps {
   isOpen: boolean;
@@ -15,11 +42,55 @@ interface BotEditorModalProps {
 }
 
 function BotEditorModalContent({ bot, onSave, onClose, onDelete }: Omit<BotEditorModalProps, 'isOpen'>) {
-  const [name, setName] = useState(bot?.name || '');
-  const [description, setDescription] = useState(bot?.description || '');
-  const [systemPrompt, setSystemPrompt] = useState(bot?.systemPrompt || '');
-  const [preferredModel, setPreferredModel] = useState(bot?.preferredModel || '');
-  const [parameters, setParameters] = useState<GenerationParameters>(bot?.defaultParameters || DEFAULT_PARAMETERS);
+  const isNewBot = !bot;
+
+  // Load draft once on mount (only for new bots) - use useState to ensure it's captured once
+  const [savedDraft] = useState<CreateBotDraft | null>(() =>
+    isNewBot ? loadDraftFromStorage() : null
+  );
+
+  const [name, setName] = useState(() => bot?.name || savedDraft?.name || '');
+  const [description, setDescription] = useState(() => bot?.description || savedDraft?.description || '');
+  const [systemPrompt, setSystemPrompt] = useState(() => bot?.systemPrompt || savedDraft?.systemPrompt || '');
+  const [preferredModel, setPreferredModel] = useState(() => bot?.preferredModel || savedDraft?.preferredModel || '');
+  const [parameters, setParameters] = useState<GenerationParameters>(() => {
+    const baseParams = bot?.defaultParameters || savedDraft?.parameters || DEFAULT_PARAMETERS;
+    // Ensure stopSequences is always an array (may be lost in JSON serialization)
+    return {
+      ...DEFAULT_PARAMETERS,
+      ...baseParams,
+      stopSequences: Array.isArray(baseParams.stopSequences) ? baseParams.stopSequences : [],
+    };
+  });
+  const [trainingExamples, setTrainingExamples] = useState<TrainingExample[]>(() =>
+    bot?.trainingExamples || savedDraft?.trainingExamples || []
+  );
+  const [newExampleInput, setNewExampleInput] = useState('');
+  const [newExampleOutput, setNewExampleOutput] = useState('');
+
+  // Save draft to localStorage whenever form data changes (only for new bots)
+  const saveDraft = useCallback(() => {
+    if (!isNewBot) return;
+
+    const draft: CreateBotDraft = {
+      name,
+      description,
+      systemPrompt,
+      preferredModel,
+      parameters,
+      trainingExamples,
+    };
+
+    try {
+      localStorage.setItem(CREATE_BOT_DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      // Ignore storage errors
+    }
+  }, [isNewBot, name, description, systemPrompt, preferredModel, parameters, trainingExamples]);
+
+  useEffect(() => {
+    saveDraft();
+  }, [saveDraft]);
 
   const handleSave = () => {
     if (!name.trim()) return;
@@ -33,9 +104,34 @@ function BotEditorModalContent({ bot, onSave, onClose, onDelete }: Omit<BotEdito
       preferredModel: preferredModel || undefined,
       preferredProvider: model?.provider,
       defaultParameters: parameters,
+      trainingExamples,
     });
 
+    // Clear draft from localStorage when bot is created successfully
+    if (isNewBot) {
+      clearDraftFromStorage();
+    }
+
     onClose();
+  };
+
+  const handleAddExample = () => {
+    if (!newExampleInput.trim() || !newExampleOutput.trim()) return;
+
+    const newExample: TrainingExample = {
+      id: `example-${Date.now()}`,
+      input: newExampleInput.trim(),
+      output: newExampleOutput.trim(),
+      enabled: true,
+    };
+
+    setTrainingExamples([...trainingExamples, newExample]);
+    setNewExampleInput('');
+    setNewExampleOutput('');
+  };
+
+  const handleRemoveExample = (id: string) => {
+    setTrainingExamples(trainingExamples.filter(ex => ex.id !== id));
   };
 
   const handleDelete = () => {
@@ -140,6 +236,65 @@ function BotEditorModalContent({ bot, onSave, onClose, onDelete }: Omit<BotEdito
               tags={parameters.stopSequences}
               onChange={(tags) => setParameters({ ...parameters, stopSequences: tags })}
             />
+          </div>
+        </div>
+
+        <div className="ai-studio-form-section">
+          <h4 className="ai-studio-form-section-title">Examples</h4>
+
+          {/* List of existing examples */}
+          {trainingExamples.length > 0 && (
+            <div className="ai-studio-examples-list">
+              {trainingExamples.map((example) => (
+                <div key={example.id} className="ai-studio-example-item">
+                  <div className="ai-studio-example-content">
+                    <div className="ai-studio-example-field">
+                      <span className="ai-studio-example-label">Input:</span>
+                      <span className="ai-studio-example-text">{example.input}</span>
+                    </div>
+                    <div className="ai-studio-example-field">
+                      <span className="ai-studio-example-label">Output:</span>
+                      <span className="ai-studio-example-text">{example.output}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="ai-studio-example-remove"
+                    onClick={() => handleRemoveExample(example.id)}
+                    title="Remove example"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add new example form */}
+          <div className="ai-studio-example-form">
+            <div className="ai-studio-example-inputs">
+              <TextArea
+                value={newExampleInput}
+                onChange={(e) => setNewExampleInput(e.target.value)}
+                placeholder="Example input (user message)"
+                rows={2}
+              />
+              <TextArea
+                value={newExampleOutput}
+                onChange={(e) => setNewExampleOutput(e.target.value)}
+                placeholder="Example output (assistant response)"
+                rows={2}
+              />
+            </div>
+            <Button
+              variant="secondary"
+              onClick={handleAddExample}
+              disabled={!newExampleInput.trim() || !newExampleOutput.trim()}
+            >
+              Add Example
+            </Button>
           </div>
         </div>
       </div>
