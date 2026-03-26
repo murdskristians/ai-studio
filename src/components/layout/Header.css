@@ -77,6 +77,50 @@
   background-color: rgba(227, 100, 100, 0.1);
 }
 
+.ai-studio-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ai-studio-settings-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ai-studio-settings-input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+.ai-studio-settings-input:focus {
+  border-color: var(--accent-blue);
+}
+
+.ai-studio-settings-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.ai-studio-settings-hint a {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.ai-studio-settings-hint a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 768px) {
   .ai-studio-header {
     padding: 0 12px;

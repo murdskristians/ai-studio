@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Button } from '../ui';
+import { Modal } from '../ui';
 import { useApp } from '../../contexts';
 import './Header.css';
 
@@ -8,7 +10,9 @@ interface HeaderProps {
 }
 
 export function Header({ performanceMode = false, onTogglePerformanceMode }: HeaderProps) {
-  const { comparisonMode, setComparisonMode, clearMessages } = useApp();
+  const { comparisonMode, setComparisonMode, clearMessages, settings, updateSettings } = useApp();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [geminiKey, setGeminiKey] = useState(settings.apiKeys.gemini || '');
 
   const handleToggleComparisonMode = () => {
     setComparisonMode(!comparisonMode);
@@ -64,7 +68,42 @@ export function Header({ performanceMode = false, onTogglePerformanceMode }: Hea
             Performance
           </Button>
         )}
+        <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M6.86 2.57a1.14 1.14 0 0 1 2.28 0c.04.5.37.93.84 1.1a1.14 1.14 0 0 0 1.37-.38 1.14 1.14 0 0 1 1.61 1.61c-.24.36-.2.84.1 1.16.3.32.76.42 1.16.27a1.14 1.14 0 0 1 1.14 1.97c-.36.24-.57.64-.57 1.07s.21.83.57 1.07a1.14 1.14 0 0 1-1.14 1.97c-.4-.15-.86-.05-1.16.27-.3.32-.34.8-.1 1.16a1.14 1.14 0 0 1-1.61 1.61 1.14 1.14 0 0 0-1.37-.38c-.47.17-.8.6-.84 1.1a1.14 1.14 0 0 1-2.28 0 1.14 1.14 0 0 0-.84-1.1 1.14 1.14 0 0 0-1.37.38 1.14 1.14 0 0 1-1.61-1.61c.24-.36.2-.84-.1-1.16a1.14 1.14 0 0 0-1.16-.27 1.14 1.14 0 0 1-1.14-1.97c.36-.24.57-.64.57-1.07s-.21-.83-.57-1.07A1.14 1.14 0 0 1 1.78 4.9c.4.15.86.05 1.16-.27.3-.32.34-.8.1-1.16a1.14 1.14 0 0 1 1.61-1.61c.36.24.84.2 1.16-.1.32-.3.42-.76.27-1.16z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            <circle cx="8" cy="8" r="2.29" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+          </svg>
+          Settings
+        </Button>
       </div>
+
+      <Modal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} title="Settings" size="sm">
+        <div className="ai-studio-settings-form">
+          <label className="ai-studio-settings-label">
+            Gemini API Key
+            <input
+              type="password"
+              className="ai-studio-settings-input"
+              value={geminiKey}
+              onChange={(e) => setGeminiKey(e.target.value)}
+              placeholder="Enter your Gemini API key"
+            />
+            <span className="ai-studio-settings-hint">
+              Get your free API key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>
+            </span>
+          </label>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              updateSettings({ apiKeys: { ...settings.apiKeys, gemini: geminiKey } });
+              setSettingsOpen(false);
+            }}
+          >
+            Save
+          </Button>
+        </div>
+      </Modal>
     </header>
   );
 }
