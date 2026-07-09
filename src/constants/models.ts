@@ -3,8 +3,8 @@ import type { ModelConfig } from '../types';
 export const MODELS: ModelConfig[] = [
   // Gemini Models
   {
-    id: 'gemini-2.5-flash',
-    name: 'Gemini 2.5 Flash',
+    id: 'gemini-3.5-flash',
+    name: 'Gemini 3.5 Flash',
     provider: 'gemini',
     description: 'Latest fast and efficient model',
     contextWindow: 1000000,
@@ -14,10 +14,10 @@ export const MODELS: ModelConfig[] = [
     supportsSystemPrompt: true,
   },
   {
-    id: 'gemini-2.5-flash-lite',
-    name: 'Gemini 2.5 Flash Lite',
+    id: 'gemini-3.1-flash-lite',
+    name: 'Gemini 3.1 Flash Lite',
     provider: 'gemini',
-    description: 'Lightweight and fast model',
+    description: 'Most cost-efficient, low-latency model',
     contextWindow: 1000000,
     maxOutputTokens: 8192,
     isFree: true,
@@ -35,5 +35,5 @@ export const getModelsByProvider = (provider: string): ModelConfig[] => {
 };
 
 export const getDefaultModel = (): ModelConfig => {
-  return MODELS.find(m => m.id === 'gemini-2.5-flash') || MODELS[0];
+  return MODELS.find(m => m.id === 'gemini-3.5-flash') || MODELS[0];
 };
