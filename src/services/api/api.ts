@@ -176,7 +176,7 @@ export const chatsApi = {
 
     // Call Gemini directly
     const genAI = new GoogleGenerativeAI(apiKey);
-    const modelName = agent?.defaultParameters?.modelName || 'gemini-2.5-flash';
+    const modelName = agent?.defaultParameters?.modelName || 'gemini-3.5-flash';
     const model = genAI.getGenerativeModel({
       model: modelName,
       systemInstruction: agent?.systemPrompt || undefined,

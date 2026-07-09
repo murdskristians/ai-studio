@@ -125,6 +125,20 @@ export function AppProvider({ children }: AppProviderProps) {
         const apiAgents = await agentsApi.list(userId);
         let loadedBots = apiAgents.map(apiAgentToBot);
 
+        // Migrate bots saved with a model that no longer exists (e.g. the retired
+        // gemini-2.5-* IDs). Reset them to the current default and persist the fix
+        // so the change survives reloads instead of only patching this session.
+        for (const bot of loadedBots) {
+          if (bot.preferredModel && !getModelById(bot.preferredModel)) {
+            bot.preferredModel = MODELS[0].id;
+            try {
+              await agentsApi.update(botToApiAgentUpdatePayload(bot, userId));
+            } catch {
+              // Non-fatal: the in-memory correction still applies for this session.
+            }
+          }
+        }
+
         // Ensure Default Assistant exists - create if not found
         let defaultAssistant = loadedBots.find(b => b.name === DEFAULT_ASSISTANT_NAME);
         if (!defaultAssistant) {

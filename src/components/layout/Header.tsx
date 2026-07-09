@@ -69,9 +69,9 @@ export function Header({ performanceMode = false, onTogglePerformanceMode }: Hea
           </Button>
         )}
         <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M6.86 2.57a1.14 1.14 0 0 1 2.28 0c.04.5.37.93.84 1.1a1.14 1.14 0 0 0 1.37-.38 1.14 1.14 0 0 1 1.61 1.61c-.24.36-.2.84.1 1.16.3.32.76.42 1.16.27a1.14 1.14 0 0 1 1.14 1.97c-.36.24-.57.64-.57 1.07s.21.83.57 1.07a1.14 1.14 0 0 1-1.14 1.97c-.4-.15-.86-.05-1.16.27-.3.32-.34.8-.1 1.16a1.14 1.14 0 0 1-1.61 1.61 1.14 1.14 0 0 0-1.37-.38c-.47.17-.8.6-.84 1.1a1.14 1.14 0 0 1-2.28 0 1.14 1.14 0 0 0-.84-1.1 1.14 1.14 0 0 0-1.37.38 1.14 1.14 0 0 1-1.61-1.61c.24-.36.2-.84-.1-1.16a1.14 1.14 0 0 0-1.16-.27 1.14 1.14 0 0 1-1.14-1.97c.36-.24.57-.64.57-1.07s-.21-.83-.57-1.07A1.14 1.14 0 0 1 1.78 4.9c.4.15.86.05 1.16-.27.3-.32.34-.8.1-1.16a1.14 1.14 0 0 1 1.61-1.61c.36.24.84.2 1.16-.1.32-.3.42-.76.27-1.16z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-            <circle cx="8" cy="8" r="2.29" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
           </svg>
           Settings
         </Button>
