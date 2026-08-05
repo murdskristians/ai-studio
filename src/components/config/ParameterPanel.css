@@ -336,8 +336,13 @@
   }
 }
 
+/* These drawer rules are scoped to the panel MainLayout renders as a direct
+   child of the layout body. ComparisonView nests its own ParameterPanel inside
+   each comparison column; an unscoped `position: fixed` yanked that copy out of
+   flow and floated it over the whole screen, collapsing the column to 0 height
+   and hiding both bot selectors. */
 @media (max-width: 1024px) {
-  .ai-studio-parameter-panel {
+  .ai-studio-layout-body > .ai-studio-parameter-panel {
     position: fixed;
     right: 0;
     top: var(--header-height);
@@ -346,7 +351,32 @@
     box-shadow: var(--shadow-lg);
   }
 
-  .ai-studio-parameter-panel.collapsed {
+  /* Tablet keeps a 48px rail peeking in as the affordance to reopen it. */
+  .ai-studio-layout-body > .ai-studio-parameter-panel.collapsed {
     transform: translateX(calc(100% - 48px));
+  }
+}
+
+@media (max-width: 768px) {
+  .ai-studio-layout-body > .ai-studio-parameter-panel {
+    width: min(var(--panel-width), 88vw);
+    transition: transform var(--transition-normal);
+    overscroll-behavior: contain;
+  }
+
+  /* On a phone that rail is 12% of the screen for one chevron. The header
+     carries the toggle instead, so the panel slides fully out of frame. */
+  .ai-studio-layout-body > .ai-studio-parameter-panel.collapsed {
+    transform: translateX(100%);
+    width: min(var(--panel-width), 88vw);
+    align-items: stretch;
+    padding-top: 0;
+    box-shadow: none;
+  }
+
+  /* The nested copy stays a normal in-flow block inside its column. */
+  .ai-studio-comparison-config .ai-studio-parameter-panel {
+    width: 100%;
+    border-left: none;
   }
 }

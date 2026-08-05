@@ -121,16 +121,60 @@
   text-decoration: underline;
 }
 
+/* Opens the bots / parameters drawers on mobile, where the collapsed rails that
+   normally carry those toggles are hidden to give the chat full width. */
+.ai-studio-drawer-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ai-studio-drawer-toggle:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.ai-studio-drawer-toggle[aria-expanded='true'] {
+  color: var(--accent-blue);
+  background-color: var(--accent-blue-light);
+}
+
 @media (max-width: 768px) {
   .ai-studio-header {
-    padding: 0 12px;
+    padding: 0 8px;
+  }
+
+  .ai-studio-header-left,
+  .ai-studio-header-right {
+    gap: 2px;
   }
 
   .ai-studio-logo-text {
     display: none;
   }
 
-  .ai-studio-header-right .ai-studio-btn span:not(.ai-studio-sr-only) {
+  .ai-studio-mobile-only {
+    display: flex;
+  }
+
+  /* The labels are bare text nodes inside Button, so the old
+     `.ai-studio-btn span` rule matched nothing and the header overflowed.
+     They are wrapped in .ai-studio-btn-label now. */
+  .ai-studio-header-right .ai-studio-btn-label {
     display: none;
+  }
+
+  .ai-studio-header-right .ai-studio-btn {
+    padding: 8px;
   }
 }

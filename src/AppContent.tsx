@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp, PerformanceProvider } from './contexts';
+import { useIsMobile } from './hooks';
 import { MainLayout, Header, Sidebar } from './components/layout';
 import { ChatContainer } from './components/chat';
 import { ParameterPanel, ParameterPanelHandle } from './components/config';
@@ -25,6 +26,8 @@ export function AppContent() {
     setParameters,
     parameterPanelCollapsed,
     setParameterPanelCollapsed,
+    sidebarCollapsed,
+    setSidebarCollapsed,
     bots,
     currentBot,
     setCurrentBot,
@@ -42,6 +45,24 @@ export function AppContent() {
     getItem(PERFORMANCE_MODE_KEY, false)
   );
   const parameterPanelRef = useRef<ParameterPanelHandle>(null);
+  const isMobile = useIsMobile();
+
+  // Both side panels overlay the chat on a phone rather than sitting beside it,
+  // so they start out of the way. Fires only when the breakpoint flips, leaving
+  // a panel the user opened on mobile alone.
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarCollapsed(true);
+      setParameterPanelCollapsed(true);
+    }
+  }, [isMobile, setSidebarCollapsed, setParameterPanelCollapsed]);
+
+  const drawerOpen = isMobile && (!sidebarCollapsed || !parameterPanelCollapsed);
+
+  const closeDrawers = useCallback(() => {
+    setSidebarCollapsed(true);
+    setParameterPanelCollapsed(true);
+  }, [setSidebarCollapsed, setParameterPanelCollapsed]);
 
   // Persist performance mode to localStorage
   const setPerformanceMode = (enabled: boolean) => {
@@ -93,6 +114,8 @@ export function AppContent() {
         <ComparisonView />
       ) : (
         <MainLayout
+          backdrop={drawerOpen}
+          onBackdropClick={closeDrawers}
           header={
             <Header
               performanceMode={performanceMode}

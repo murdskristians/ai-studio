@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   width: 100%;
   overflow: hidden;
 }
@@ -233,4 +234,33 @@
   background-color: var(--bg-primary);
   padding: 16px 24px 24px;
   border-top: 1px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+  .ai-studio-comparison-header {
+    padding: 0 10px;
+  }
+
+  .ai-studio-comparison-title span {
+    font-size: 15px;
+  }
+
+  /* Side by side gives each model ~195px on a phone. Stacking trades the
+     at-a-glance diff for output that is actually readable. */
+  .ai-studio-comparison-panels {
+    flex-direction: column;
+  }
+
+  .ai-studio-comparison-panel {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .ai-studio-comparison-panel-header {
+    padding: 8px 10px;
+  }
+
+  .ai-studio-comparison-input .ai-studio-chat-input-container {
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
 }

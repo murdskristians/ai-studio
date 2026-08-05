@@ -462,3 +462,43 @@
   min-width: 18px;
   text-align: center;
 }
+
+@media (max-width: 768px) {
+  .ai-studio-performance-monitor {
+    height: 100dvh;
+  }
+
+  .ai-studio-performance-header {
+    height: auto;
+    min-height: var(--header-height);
+    padding: 8px 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ai-studio-performance-title span {
+    font-size: 15px;
+  }
+
+  .ai-studio-view-btn {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  /* A fixed 280px sidebar leaves roughly 110px for the report on a phone.
+     Stack it above the content as a scrollable band instead. */
+  .ai-studio-performance-content {
+    flex-direction: column;
+  }
+
+  .ai-studio-performance-sidebar {
+    width: 100%;
+    max-height: 45vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .ai-studio-performance-main {
+    padding: 12px;
+  }
+}

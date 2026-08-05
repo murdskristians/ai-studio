@@ -2,6 +2,9 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  /* dvh follows the mobile browser chrome as it collapses, so the chat input
+     is not left stranded behind the URL bar. */
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -9,6 +12,7 @@
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
 .ai-studio-layout-main {
@@ -17,4 +21,19 @@
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+}
+
+/* Only ever shown at mobile widths, where the side panels overlay the chat. */
+.ai-studio-layout-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .ai-studio-layout-backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 90;
+    background-color: rgba(0, 0, 0, 0.4);
+  }
 }

@@ -71,3 +71,19 @@ textarea.ai-studio-chat-input:focus-visible {
   color: var(--text-muted);
   margin-top: 8px;
 }
+
+@media (max-width: 768px) {
+  .ai-studio-chat-input-container {
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .ai-studio-chat-input-wrapper {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  /* There is no physical Enter key to press, so the hint is just noise. */
+  .ai-studio-chat-input-hint {
+    display: none;
+  }
+}

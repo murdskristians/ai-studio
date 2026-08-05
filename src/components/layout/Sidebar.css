@@ -307,17 +307,31 @@
 }
 
 @media (max-width: 768px) {
+  /* Drawer over the chat rather than a column beside it. */
   .ai-studio-sidebar {
     position: fixed;
     left: 0;
     top: var(--header-height);
     bottom: 0;
+    width: min(var(--sidebar-width), 85vw);
     z-index: 100;
     box-shadow: var(--shadow-lg);
+    border-radius: 0;
+    transition: transform var(--transition-normal);
+    overscroll-behavior: contain;
   }
 
+  /* Collapsed renders only a 48px toggle rail, which would just eat width on a
+     phone — slide it off-screen instead. The header carries the toggle there. */
   .ai-studio-sidebar.collapsed {
     transform: translateX(-100%);
-    width: 0;
+    width: min(var(--sidebar-width), 85vw);
+    padding-top: 0;
+    box-shadow: none;
+  }
+
+  .ai-studio-sidebar-header {
+    height: auto;
+    min-height: 56px;
   }
 }
