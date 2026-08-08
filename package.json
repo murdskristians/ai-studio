@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "AI Studio Module - AI chat interface with multiple provider support",
   "scripts": {
+    "dev": "webpack serve --mode development",
     "start": "webpack serve --mode development",
     "start:test": "webpack serve --mode development --env ENV_FILE=.env.test",
     "build": "webpack --mode production",
