@@ -1,0 +1,3 @@
+# Pin the runtime so the build does not drift with Netlify's default.
+[build.environment]
+  NODE_VERSION = "22"
