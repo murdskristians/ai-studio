@@ -83,6 +83,12 @@
   gap: 16px;
 }
 
+.ai-studio-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .ai-studio-settings-label {
   display: flex;
   flex-direction: column;

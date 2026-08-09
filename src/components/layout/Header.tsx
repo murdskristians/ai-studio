@@ -23,6 +23,15 @@ export function Header({ performanceMode = false, onTogglePerformanceMode }: Hea
   } = useApp();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [groqKey, setGroqKey] = useState(settings.apiKeys.groq || '');
+  const hasStoredKey = Boolean(settings.apiKeys.groq);
+
+  // Re-seed the field from storage each time the dialog opens. Without this the
+  // input keeps whatever it held for the life of the component, so a key
+  // removed elsewhere would still appear to be set.
+  const openSettings = () => {
+    setGroqKey(settings.apiKeys.groq || '');
+    setSettingsOpen(true);
+  };
 
   // On mobile the drawers overlay the chat, so only one may be open at a time.
   const handleToggleSidebar = () => {
@@ -101,7 +110,7 @@ export function Header({ performanceMode = false, onTogglePerformanceMode }: Hea
             <span className="ai-studio-btn-label">Performance</span>
           </Button>
         )}
-        <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
+        <Button variant="ghost" size="sm" onClick={openSettings}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
             <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
@@ -132,6 +141,15 @@ export function Header({ performanceMode = false, onTogglePerformanceMode }: Hea
               value={groqKey}
               onChange={(e) => setGroqKey(e.target.value)}
               placeholder="Optional — leave empty to use the demo key"
+              // Browsers read a bare password field as a login and refill it
+              // from the password manager, which silently resurrects a key the
+              // user just cleared. These opt out of that for Chrome, 1Password
+              // and LastPass respectively.
+              name="groq-api-key"
+              autoComplete="new-password"
+              data-1p-ignore
+              data-lpignore="true"
+              spellCheck={false}
             />
             <span className="ai-studio-settings-hint">
               Leave this empty and the hosted demo answers for you. Add your own key
@@ -139,16 +157,40 @@ export function Header({ performanceMode = false, onTogglePerformanceMode }: Hea
               Get one free from <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">Groq Console</a>.
             </span>
           </label>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => {
-              updateSettings({ apiKeys: { ...settings.apiKeys, groq: groqKey } });
-              setSettingsOpen(false);
-            }}
-          >
-            Save
-          </Button>
+          <div className="ai-studio-settings-actions">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                const trimmed = groqKey.trim();
+                // Store nothing rather than an empty string, so a cleared field
+                // leaves no trace behind in localStorage.
+                const apiKeys = { ...settings.apiKeys };
+                if (trimmed) apiKeys.groq = trimmed;
+                else delete apiKeys.groq;
+                updateSettings({ apiKeys });
+                setSettingsOpen(false);
+              }}
+            >
+              Save
+            </Button>
+            {hasStoredKey && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  // Deliberately ignores the input: if the password manager has
+                  // refilled it, clearing based on its value would save the key
+                  // straight back.
+                  setGroqKey('');
+                  updateSettings({ apiKeys: {} });
+                  setSettingsOpen(false);
+                }}
+              >
+                Remove saved key
+              </Button>
+            )}
+          </div>
         </div>
       </Modal>
     </header>

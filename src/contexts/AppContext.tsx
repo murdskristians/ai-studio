@@ -1044,7 +1044,11 @@ export function AppProvider({ children }: AppProviderProps) {
           role: 'assistant',
           content: response.response,
           timestamp: Date.now(),
-          model: 'Gemini',
+          // Label with the model that actually answered — the request is built
+          // from the bot's preferredModel, not from the selector's state.
+          model:
+            getModelById((targetBot ?? currentBotValue)?.preferredModel ?? '')?.name ??
+            MODELS[0].name,
         };
         const finalMessages = [...updatedMessages, assistantMessage];
         updateMessages(targetBot, finalMessages, callbacks);
