@@ -72,3 +72,32 @@ export default defineConfig([
 ])
 ```
 # ai-studio-module
+
+## Getting started
+
+```bash
+pnpm install
+cp .env.example .env    # then fill in GEMINI_API_KEY
+pnpm dev                # http://localhost:3002
+```
+
+`pnpm dev` serves the UI only. To exercise the demo proxy as well, run
+`netlify dev`, which also runs `netlify/functions/` and loads `.env`.
+
+## API keys
+
+The app talks to Gemini two ways, and needs neither configured to run:
+
+| | Key used | Where it lives |
+|---|---|---|
+| Visitor saves a key in Settings | theirs | their browser's localStorage; calls Gemini directly |
+| Visitor saves nothing | `GEMINI_API_KEY` | the server, via `netlify/functions/gemini-chat.mts` |
+
+With no `GEMINI_API_KEY` set, the function returns 503 and the UI asks the
+visitor for their own key — the app degrades, it does not break.
+
+**`GEMINI_API_KEY` is server-side only.** Set it in Netlify's environment
+variables for the deployed site, and in `.env` locally. Never put it in
+`.env.production` or `.env.development`: webpack inlines those into the browser
+bundle, which publishes the key to anyone who opens DevTools. See
+[.env.example](.env.example) for the full breakdown.

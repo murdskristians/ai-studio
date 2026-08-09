@@ -9,13 +9,8 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-# Single-page app: every route must fall back to index.html, but real function
-# calls have to reach the function rather than being rewritten to the shell.
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
+# Single-page app: every route falls back to index.html. Function paths are
+# routed before redirects are applied, so they are unaffected by this.
 [[redirects]]
   from = "/*"
   to = "/index.html"
