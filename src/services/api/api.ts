@@ -57,6 +57,42 @@ const DEMO_PROXY_URL = '/.netlify/functions/groq-chat';
 const NO_KEY_MESSAGE =
   'Groq API key not configured. Go to Settings and add your Groq API key.';
 
+/**
+ * Turns Groq's raw SDK errors into something a user can act on.
+ *
+ * The unhelpful one is 413: max_completion_tokens is a reservation counted in
+ * full against the per-minute token budget, so a large Max Tokens setting
+ * fails the request outright even when the reply would have been short.
+ */
+async function withFriendlyGroqErrors<T>(model: string, run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error;
+
+    const status = (error as { status?: number })?.status;
+    const detail = String((error as { message?: string })?.message ?? '');
+
+    if (status === 413 || /tokens per minute|request too large/i.test(detail)) {
+      const limit = detail.match(/Limit\s+(\d+)/)?.[1];
+      throw new Error(
+        `Max Tokens is higher than your Groq plan allows per minute${limit ? ` (limit ${limit})` : ''}. ` +
+          `Lower Max Tokens in the parameters panel and try again.`
+      );
+    }
+    if (status === 429) {
+      throw new Error('Groq is rate limiting this key right now. Wait a moment and try again.');
+    }
+    if (status === 401 || status === 403) {
+      throw new Error('Groq rejected this API key. Check it in Settings.');
+    }
+    if (status === 404 || /does not exist|decommissioned/i.test(detail)) {
+      throw new Error(`The model "${model}" is no longer available on Groq. Pick another in the model selector.`);
+    }
+    throw error;
+  }
+}
+
 async function sendViaDemoProxy(
   request: {
     model: string;
@@ -225,10 +261,17 @@ export const chatsApi = {
     // rather than sending an id Groq will reject.
     const savedModel = agent?.defaultParameters?.modelName;
     const modelName = savedModel && getModelById(savedModel) ? savedModel : DEFAULT_MODEL_ID;
+    const modelConfig = getModelById(modelName);
+
+    // The parameter panel offers one range for every model (up to 65535), but
+    // each model caps max_completion_tokens separately — 32768 on Llama 3.3
+    // 70B, 16384 on Qwen — and Groq rejects anything above it with a 400
+    // rather than clamping. Hold the request to what the chosen model allows.
+    const requestedMaxTokens = agent?.defaultParameters?.maxTokens ?? 8192;
     const generationConfig = {
       temperature: agent?.defaultParameters?.temperature ?? 1,
       topP: agent?.defaultParameters?.topP ?? 0.95,
-      maxOutputTokens: agent?.defaultParameters?.maxTokens ?? 8192,
+      maxOutputTokens: Math.min(requestedMaxTokens, modelConfig?.maxOutputTokens ?? 8192),
       stopSequences:
         agent?.defaultParameters?.stopSequences?.length
           ? agent.defaultParameters.stopSequences
@@ -245,7 +288,8 @@ export const chatsApi = {
     if (apiKey) {
       // The visitor supplied a key, so talk to Groq straight from the browser.
       const groq = new Groq({ apiKey, dangerouslyAllowBrowser: true });
-      const completion = await groq.chat.completions.create(
+      const completion = await withFriendlyGroqErrors(modelName, () =>
+        groq.chat.completions.create(
         {
           model: modelName,
           messages: [
@@ -267,6 +311,7 @@ export const chatsApi = {
             : {}),
         },
         { signal }
+        )
       );
       responseText = completion.choices[0]?.message?.content?.trim() ?? '';
       if (!responseText) {

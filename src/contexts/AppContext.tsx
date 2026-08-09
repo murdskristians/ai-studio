@@ -125,12 +125,27 @@ export function AppProvider({ children }: AppProviderProps) {
         const apiAgents = await agentsApi.list(userId);
         let loadedBots = apiAgents.map(apiAgentToBot);
 
-        // Migrate bots saved with a model that no longer exists (e.g. the retired
-        // gemini-2.5-* IDs). Reset them to the current default and persist the fix
-        // so the change survives reloads instead of only patching this session.
+        // Repair bots holding values the provider will refuse, and persist the
+        // fix so it survives reloads instead of only patching this session.
         for (const bot of loadedBots) {
+          let repaired = false;
+
+          // A model that no longer exists — e.g. the retired gemini-* ids.
           if (bot.preferredModel && !getModelById(bot.preferredModel)) {
             bot.preferredModel = MODELS[0].id;
+            repaired = true;
+          }
+
+          // A token reservation above the model's ceiling. Groq rejects the
+          // whole request with a 400 rather than clamping, so a bot saved under
+          // the old 65535 default could never send a message.
+          const ceiling = getModelById(bot.preferredModel ?? '')?.maxOutputTokens;
+          if (ceiling && bot.defaultParameters && bot.defaultParameters.maxTokens > ceiling) {
+            bot.defaultParameters.maxTokens = DEFAULT_PARAMETERS.maxTokens;
+            repaired = true;
+          }
+
+          if (repaired) {
             try {
               await agentsApi.update(botToApiAgentUpdatePayload(bot, userId));
             } catch {
