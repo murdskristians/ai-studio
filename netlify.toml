@@ -2,7 +2,7 @@
 [build.environment]
   NODE_VERSION = "22"
 
-# Holds the demo's Gemini proxy. GEMINI_API_KEY is read here at request time and
+# Holds the demo's Groq proxy. GROQ_API_KEY is read here at request time and
 # is never exposed to the browser, so it must be set as a site environment
 # variable — not in any .env file the webpack build inlines into the bundle.
 [functions]

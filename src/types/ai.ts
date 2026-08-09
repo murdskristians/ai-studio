@@ -12,6 +12,13 @@ export interface ModelConfig {
   isFree: boolean;
   supportsStreaming: boolean;
   supportsSystemPrompt: boolean;
+  /**
+   * Reasoning models think before answering. Left alone, some return that
+   * thinking as `<think>…</think>` inside the reply. Groq strips it when sent
+   * `reasoning_format`, but rejects that parameter outright (HTTP 400) for
+   * models that do not reason — so it has to be set per model.
+   */
+  supportsReasoningFormat: boolean;
 }
 
 export interface CompletionParams {

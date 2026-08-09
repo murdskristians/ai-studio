@@ -1,9 +1,10 @@
 /**
  * API Client - localStorage-based implementation
- * All data is stored locally in the browser. AI calls go directly to Gemini.
+ * All data is stored locally in the browser. AI calls go to Groq.
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
+import { getModelById, DEFAULT_MODEL_ID } from '../../constants/models';
 import type {
   ApiAgent,
   ApiAgentCreatePayload,
@@ -45,23 +46,23 @@ function generateId(): string {
 // ============================================
 
 /**
- * Sends a turn through the hosted demo endpoint, which holds a Gemini key
+ * Sends a turn through the hosted demo endpoint, which holds a Groq key
  * server-side so visitors can try the studio without one of their own.
  *
  * Deliberately a relative path: the key belongs to whichever deployment serves
  * this bundle, and it must never be inlined into the bundle itself.
  */
-const DEMO_PROXY_URL = '/.netlify/functions/gemini-chat';
+const DEMO_PROXY_URL = '/.netlify/functions/groq-chat';
 
 const NO_KEY_MESSAGE =
-  'Gemini API key not configured. Go to Settings and add your Gemini API key.';
+  'Groq API key not configured. Go to Settings and add your Groq API key.';
 
 async function sendViaDemoProxy(
   request: {
     model: string;
     systemInstruction?: string;
     generationConfig: Record<string, unknown>;
-    history: { role: 'user' | 'model'; parts: { text: string }[] }[];
+    history: { role: 'user' | 'assistant'; content: string }[];
     message: string;
   },
   signal?: AbortSignal
@@ -190,7 +191,7 @@ export const chatsApi = {
 
   /**
    * Send a message to AI and get response.
-   * Calls Gemini directly from the client, saves messages to localStorage.
+   * Calls Groq directly from the client, saves messages to localStorage.
    */
   send: async (payload: ApiChatSendPayload, signal?: AbortSignal): Promise<ApiChatSendResponse> => {
     // Save user message
@@ -211,16 +212,19 @@ export const chatsApi = {
     // Get conversation history for this chat
     const chatMessages = allMessages.filter(m => m.chatId === payload.chatId);
     const history = chatMessages.slice(0, -1).map(m => ({
-      role: m.type === 'human' ? 'user' as const : 'model' as const,
-      parts: [{ text: m.content }],
+      role: m.type === 'human' ? 'user' as const : 'assistant' as const,
+      content: m.content,
     }));
 
     // Read API key from settings in localStorage
     const settingsRaw = localStorage.getItem('ai-studio-settings');
     const settings = settingsRaw ? JSON.parse(settingsRaw) : {};
-    const apiKey = settings?.apiKeys?.gemini;
+    const apiKey = settings?.apiKeys?.groq;
 
-    const modelName = agent?.defaultParameters?.modelName || 'gemini-3.5-flash';
+    // A bot saved before this model list existed falls back to the default
+    // rather than sending an id Groq will reject.
+    const savedModel = agent?.defaultParameters?.modelName;
+    const modelName = savedModel && getModelById(savedModel) ? savedModel : DEFAULT_MODEL_ID;
     const generationConfig = {
       temperature: agent?.defaultParameters?.temperature ?? 1,
       topP: agent?.defaultParameters?.topP ?? 0.95,
@@ -239,17 +243,39 @@ export const chatsApi = {
     let responseText: string;
 
     if (apiKey) {
-      // The visitor supplied a key, so talk to Gemini straight from the browser.
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        systemInstruction: agent?.systemPrompt || undefined,
-        generationConfig,
-      });
-
-      const chat = model.startChat({ history });
-      const result = await chat.sendMessage(payload.message);
-      responseText = result.response.text();
+      // The visitor supplied a key, so talk to Groq straight from the browser.
+      const groq = new Groq({ apiKey, dangerouslyAllowBrowser: true });
+      const completion = await groq.chat.completions.create(
+        {
+          model: modelName,
+          messages: [
+            ...(agent?.systemPrompt
+              ? [{ role: 'system' as const, content: agent.systemPrompt }]
+              : []),
+            ...history,
+            { role: 'user' as const, content: payload.message },
+          ],
+          temperature: generationConfig.temperature,
+          top_p: generationConfig.topP,
+          max_completion_tokens: generationConfig.maxOutputTokens,
+          stop: generationConfig.stopSequences,
+          // Reasoning models otherwise return their thinking as <think>…</think>
+          // inside the reply. Only send it where Groq accepts it — the llama
+          // models reject the parameter with a 400.
+          ...(getModelById(modelName)?.supportsReasoningFormat
+            ? { reasoning_format: 'hidden' as const }
+            : {}),
+        },
+        { signal }
+      );
+      responseText = completion.choices[0]?.message?.content?.trim() ?? '';
+      if (!responseText) {
+        throw new Error(
+          completion.choices[0]?.finish_reason === 'length'
+            ? 'The model ran out of room before answering. Try a shorter prompt or a different model.'
+            : 'The model returned an empty response. Please try again.'
+        );
+      }
     } else {
       // No key: fall back to the hosted demo proxy, which holds one server-side.
       responseText = await sendViaDemoProxy(

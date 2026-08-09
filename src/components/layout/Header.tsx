@@ -22,7 +22,7 @@ export function Header({ performanceMode = false, onTogglePerformanceMode }: Hea
     setParameterPanelCollapsed,
   } = useApp();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [geminiKey, setGeminiKey] = useState(settings.apiKeys.gemini || '');
+  const [groqKey, setGroqKey] = useState(settings.apiKeys.groq || '');
 
   // On mobile the drawers overlay the chat, so only one may be open at a time.
   const handleToggleSidebar = () => {
@@ -125,25 +125,25 @@ export function Header({ performanceMode = false, onTogglePerformanceMode }: Hea
       <Modal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} title="Settings" size="sm">
         <div className="ai-studio-settings-form">
           <label className="ai-studio-settings-label">
-            Gemini API Key
+            Groq API Key
             <input
               type="password"
               className="ai-studio-settings-input"
-              value={geminiKey}
-              onChange={(e) => setGeminiKey(e.target.value)}
+              value={groqKey}
+              onChange={(e) => setGroqKey(e.target.value)}
               placeholder="Optional — leave empty to use the demo key"
             />
             <span className="ai-studio-settings-hint">
               Leave this empty and the hosted demo answers for you. Add your own key
-              for higher limits — it stays in this browser and calls Gemini directly.
-              Get one free from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.
+              for higher limits — it stays in this browser and calls Groq directly.
+              Get one free from <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">Groq Console</a>.
             </span>
           </label>
           <Button
             variant="primary"
             size="sm"
             onClick={() => {
-              updateSettings({ apiKeys: { ...settings.apiKeys, gemini: geminiKey } });
+              updateSettings({ apiKeys: { ...settings.apiKeys, groq: groqKey } });
               setSettingsOpen(false);
             }}
           >
