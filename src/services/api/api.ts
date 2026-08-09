@@ -54,8 +54,18 @@ function generateId(): string {
  */
 const DEMO_PROXY_URL = '/.netlify/functions/groq-chat';
 
+// This deployment serves the function but has no key behind it. Note that a
+// .env file cannot fix this: it is gitignored, so it never reaches the host —
+// the key has to be set as an environment variable on the site itself.
 const NO_KEY_MESSAGE =
-  'Groq API key not configured. Go to Settings and add your Groq API key.';
+  'This deployment has no shared demo key (GROQ_API_KEY is not set on the site). ' +
+  'Add your own key in Settings to chat.';
+
+// Nothing answered at the function path at all, which normally means the app is
+// running under `webpack serve`, where no functions exist.
+const NO_ENDPOINT_MESSAGE =
+  'The demo endpoint is not available here — run `netlify dev` instead of `pnpm dev` to use it, ' +
+  'or add your own Groq key in Settings.';
 
 /**
  * Turns Groq's raw SDK errors into something a user can act on.
@@ -114,15 +124,20 @@ async function sendViaDemoProxy(
   } catch (error) {
     // Let a user-initiated cancel propagate as an abort, not a failure.
     if (error instanceof DOMException && error.name === 'AbortError') throw error;
-    // No endpoint at all — e.g. running the bundle outside its deployment.
-    throw new Error(NO_KEY_MESSAGE);
+    throw new Error(NO_ENDPOINT_MESSAGE);
   }
 
   const data = (await response.json().catch(() => ({}))) as { text?: string; error?: string };
 
   if (!response.ok) {
-    // 503 means the deployment has no demo key set, so ask for a personal one.
-    throw new Error(data.error === 'demo_key_unavailable' ? NO_KEY_MESSAGE : data.error || NO_KEY_MESSAGE);
+    // Nothing is serving the function — typically `webpack serve`, which has no
+    // functions at all. Saying "add a key" here sends people to the wrong place.
+    if (response.status === 404) throw new Error(NO_ENDPOINT_MESSAGE);
+    // The endpoint exists but the deployment has no key behind it.
+    if (response.status === 503 || data.error === 'demo_key_unavailable') {
+      throw new Error(NO_KEY_MESSAGE);
+    }
+    throw new Error(data.error || NO_KEY_MESSAGE);
   }
 
   if (!data.text) throw new Error('The demo returned an empty response. Please try again.');
