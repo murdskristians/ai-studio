@@ -117,15 +117,28 @@ export default async (req: Request): Promise<Response> => {
   if (!upstream.ok) {
     // Never surface Google's message: it can echo key and project details.
     console.error('Gemini demo proxy error', upstream.status, result.error?.status);
-    const tooBusy = upstream.status === 429;
-    return json(
-      {
-        error: tooBusy
-          ? 'The shared demo key is rate limited right now. Add your own key in Settings to keep going.'
-          : 'Gemini rejected the request.',
-      },
-      tooBusy ? 429 : 502
-    );
+
+    if (upstream.status === 429) {
+      return json(
+        { error: 'The shared demo key is rate limited right now. Add your own key in Settings to keep going.' },
+        429
+      );
+    }
+
+    // A key can be present but unusable against Google — Netlify's AI Gateway
+    // injects GEMINI_API_KEY into the runtime whether or not this site has one
+    // of its own, and that token does not authenticate here. Report it as "no
+    // demo key" so the client asks for a personal one instead of dead-ending.
+    const rejectedKey =
+      upstream.status === 401 ||
+      upstream.status === 403 ||
+      result.error?.status === 'UNAUTHENTICATED' ||
+      result.error?.status === 'PERMISSION_DENIED' ||
+      /api[ _-]?key/i.test(result.error?.message ?? '');
+
+    if (rejectedKey) return json({ error: 'demo_key_unavailable' }, 503);
+
+    return json({ error: 'Gemini rejected the request.' }, 502);
   }
 
   if (result.promptFeedback?.blockReason) {
