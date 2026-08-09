@@ -97,7 +97,13 @@ With no `GEMINI_API_KEY` set, the function returns 503 and the UI asks the
 visitor for their own key — the app degrades, it does not break.
 
 **`GEMINI_API_KEY` is server-side only.** Set it in Netlify's environment
-variables for the deployed site, and in `.env` locally. Never put it in
-`.env.production` or `.env.development`: webpack inlines those into the browser
-bundle, which publishes the key to anyone who opens DevTools. See
-[.env.example](.env.example) for the full breakdown.
+variables for the deployed site, and in `.env` locally — that is the file
+`netlify dev` hands to the functions. It does not belong in `.env.development`
+or `.env.production`, which are read by webpack rather than by the function
+that needs it.
+
+Those two webpack files only ever expose a value if some file under `src/`
+writes `process.env.NAME`; DefinePlugin substitutes references, it does not
+copy the file into the bundle. Nothing in `src/` reads any env var today. So
+the rule that keeps the key private is simply: don't reference it from client
+code. See [.env.example](.env.example) for the full breakdown.
