@@ -1,3 +1,22 @@
 # Pin the runtime so the build does not drift with Netlify's default.
 [build.environment]
   NODE_VERSION = "22"
+
+# Holds the demo's Gemini proxy. GEMINI_API_KEY is read here at request time and
+# is never exposed to the browser, so it must be set as a site environment
+# variable — not in any .env file the webpack build inlines into the bundle.
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Single-page app: every route must fall back to index.html, but real function
+# calls have to reach the function rather than being rewritten to the shell.
+[[redirects]]
+  from = "/.netlify/functions/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

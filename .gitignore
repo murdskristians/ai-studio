@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Secrets. webpack inlines .env.* into the bundle via DefinePlugin, so anything
+# here is public once deployed — never put a real key in one.
+.env
+.env.*
+!.env.example
+.netlify
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

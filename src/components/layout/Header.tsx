@@ -131,10 +131,12 @@ export function Header({ performanceMode = false, onTogglePerformanceMode }: Hea
               className="ai-studio-settings-input"
               value={geminiKey}
               onChange={(e) => setGeminiKey(e.target.value)}
-              placeholder="Enter your Gemini API key"
+              placeholder="Optional — leave empty to use the demo key"
             />
             <span className="ai-studio-settings-hint">
-              Get your free API key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>
+              Leave this empty and the hosted demo answers for you. Add your own key
+              for higher limits — it stays in this browser and calls Gemini directly.
+              Get one free from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.
             </span>
           </label>
           <Button

@@ -41,6 +41,58 @@ function generateId(): string {
 }
 
 // ============================================
+// Demo proxy
+// ============================================
+
+/**
+ * Sends a turn through the hosted demo endpoint, which holds a Gemini key
+ * server-side so visitors can try the studio without one of their own.
+ *
+ * Deliberately a relative path: the key belongs to whichever deployment serves
+ * this bundle, and it must never be inlined into the bundle itself.
+ */
+const DEMO_PROXY_URL = '/.netlify/functions/gemini-chat';
+
+const NO_KEY_MESSAGE =
+  'Gemini API key not configured. Go to Settings and add your Gemini API key.';
+
+async function sendViaDemoProxy(
+  request: {
+    model: string;
+    systemInstruction?: string;
+    generationConfig: Record<string, unknown>;
+    history: { role: 'user' | 'model'; parts: { text: string }[] }[];
+    message: string;
+  },
+  signal?: AbortSignal
+): Promise<string> {
+  let response: Response;
+  try {
+    response = await fetch(DEMO_PROXY_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(request),
+      signal,
+    });
+  } catch (error) {
+    // Let a user-initiated cancel propagate as an abort, not a failure.
+    if (error instanceof DOMException && error.name === 'AbortError') throw error;
+    // No endpoint at all — e.g. running the bundle outside its deployment.
+    throw new Error(NO_KEY_MESSAGE);
+  }
+
+  const data = (await response.json().catch(() => ({}))) as { text?: string; error?: string };
+
+  if (!response.ok) {
+    // 503 means the deployment has no demo key set, so ask for a personal one.
+    throw new Error(data.error === 'demo_key_unavailable' ? NO_KEY_MESSAGE : data.error || NO_KEY_MESSAGE);
+  }
+
+  if (!data.text) throw new Error('The demo returned an empty response. Please try again.');
+  return data.text;
+}
+
+// ============================================
 // AGENTS API (Bots) - localStorage
 // ============================================
 
@@ -168,38 +220,49 @@ export const chatsApi = {
     const settings = settingsRaw ? JSON.parse(settingsRaw) : {};
     const apiKey = settings?.apiKeys?.gemini;
 
-    if (!apiKey) {
-      throw new Error(
-        'Gemini API key not configured. Go to Settings and add your Gemini API key.'
-      );
-    }
-
-    // Call Gemini directly
-    const genAI = new GoogleGenerativeAI(apiKey);
     const modelName = agent?.defaultParameters?.modelName || 'gemini-3.5-flash';
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      systemInstruction: agent?.systemPrompt || undefined,
-      generationConfig: {
-        temperature: agent?.defaultParameters?.temperature ?? 1,
-        topP: agent?.defaultParameters?.topP ?? 0.95,
-        maxOutputTokens: agent?.defaultParameters?.maxTokens ?? 8192,
-        stopSequences:
-          agent?.defaultParameters?.stopSequences?.length
-            ? agent.defaultParameters.stopSequences
-            : undefined,
-      },
-    });
-
-    const chat = model.startChat({ history });
+    const generationConfig = {
+      temperature: agent?.defaultParameters?.temperature ?? 1,
+      topP: agent?.defaultParameters?.topP ?? 0.95,
+      maxOutputTokens: agent?.defaultParameters?.maxTokens ?? 8192,
+      stopSequences:
+        agent?.defaultParameters?.stopSequences?.length
+          ? agent.defaultParameters.stopSequences
+          : undefined,
+    };
 
     // Check abort before calling
     if (signal?.aborted) {
       throw new DOMException('The operation was aborted.', 'AbortError');
     }
 
-    const result = await chat.sendMessage(payload.message);
-    const responseText = result.response.text();
+    let responseText: string;
+
+    if (apiKey) {
+      // The visitor supplied a key, so talk to Gemini straight from the browser.
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: agent?.systemPrompt || undefined,
+        generationConfig,
+      });
+
+      const chat = model.startChat({ history });
+      const result = await chat.sendMessage(payload.message);
+      responseText = result.response.text();
+    } else {
+      // No key: fall back to the hosted demo proxy, which holds one server-side.
+      responseText = await sendViaDemoProxy(
+        {
+          model: modelName,
+          systemInstruction: agent?.systemPrompt || undefined,
+          generationConfig,
+          history,
+          message: payload.message,
+        },
+        signal
+      );
+    }
 
     // Save AI response message
     const aiMsg: ApiMessage = {
