@@ -77,12 +77,24 @@ export default defineConfig([
 
 ```bash
 pnpm install
-cp .env.example .env    # then fill in GROQ_API_KEY
-pnpm dev                # http://localhost:3002
+cp .env.example .env      # then fill in GROQ_API_KEY
+netlify dev               # http://localhost:8888
 ```
 
-`pnpm dev` serves the UI only. To exercise the demo proxy as well, run
-`netlify dev`, which also runs `netlify/functions/` and loads `.env`.
+Two ways to run it, and the difference decides whether the demo key works:
+
+| Command | URL | Functions | `.env` |
+|---|---|---|---|
+| `netlify dev` | http://localhost:8888 | yes | loaded |
+| `pnpm dev` | http://localhost:3002 | **no** | ignored |
+
+`pnpm dev` runs webpack alone, which serves static files and nothing else.
+There is no server in that setup to read `GROQ_API_KEY`, so the demo endpoint
+does not exist and chatting requires a key entered in Settings. Adding the key
+to a `.env` file will not change that — a browser cannot read a file on disk,
+which is exactly why the key is safe there.
+
+Use `netlify dev` when you want the demo path; `pnpm dev` is fine for UI work.
 
 ## API keys
 

@@ -9,6 +9,18 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# `netlify dev` needs to be told how to start this app, otherwise it falls back
+# to a static server and serves the repo directory instead of the webpack dev
+# server. With this it runs `pnpm dev` on 3002, proxies it on 8888, and serves
+# netlify/functions alongside — which is the only way to exercise the demo key
+# locally, since a plain `pnpm dev` has no server to hold GROQ_API_KEY.
+[dev]
+  command = "pnpm dev"
+  targetPort = 3002
+  port = 8888
+  framework = "#custom"
+  autoLaunch = false
+
 # Single-page app: every route falls back to index.html. Function paths are
 # routed before redirects are applied, so they are unaffected by this.
 [[redirects]]
